@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Background Circle with Tech Feel -->
+    <path
+        android:fillColor="#E8EAF6"
+        android:pathData="M120,10C59.25,10 10,59.25 10,120C10,180.75 59.25,230 120,230C180.75,230 230,180.75 230,120C230,59.25 180.75,10 120,10Z"/>
+
+    <!-- Outer Tech Ring with Motion Tracking Points -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M120,20C64.77,20 20,64.77 20,120C20,175.23 64.77,220 120,220C175.23,220 220,175.23 220,120C220,64.77 175.23,20 120,20Z"/>
+
+    <!-- Motion Tracking Grid -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="0.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M40,40L200,40 M40,80L200,80 M40,120L200,120 M40,160L200,160 M40,200L200,200"/>
+
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="0.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M40,40L40,200 M80,40L80,200 M120,40L120,200 M160,40L160,200 M200,40L200,200"/>
+
+    <!-- Exercise Figure - Weightlifting Pose -->
+    <!-- Head -->
+    <path
+        android:fillColor="#304FFE"
+        android:pathData="M128,75 A8,8 0 1,1 112,75 A8,8 0 1,1 128,75"/>
+
+    <!-- Neck -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M120,83L120,95"/>
+
+    <!-- Body - Wider for muscular appearance -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="12"
+        android:strokeLineCap="round"
+        android:pathData="M120,95L120,135"/>
+
+    <!-- Arms - Bicep Curl Position -->
+    <!-- Left Arm Upper -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M120,100L85,115"/>
+    <!-- Left Arm Lower -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M85,115L85,140"/>
+
+    <!-- Right Arm Upper -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M120,100L155,115"/>
+    <!-- Right Arm Lower -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M155,115L155,140"/>
+
+    <!-- Legs - Stable Stance -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M120,135L100,185"/>
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M120,135L140,185"/>
+
+    <!-- Barbell -->
+    <!-- Left Weight -->
+    <path
+        android:fillColor="#304FFE"
+        android:pathData="M77,140 A12,12 0 1,1 53,140 A12,12 0 1,1 77,140"/>
+    <!-- Right Weight -->
+    <path
+        android:fillColor="#304FFE"
+        android:pathData="M187,140 A12,12 0 1,1 163,140 A12,12 0 1,1 187,140"/>
+    <!-- Bar -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M65,140L175,140"/>
+
+    <!-- Motion Tracking Points -->
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M124,100 A4,4 0 1,1 116,100 A4,4 0 1,1 124,100"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M89,115 A4,4 0 1,1 81,115 A4,4 0 1,1 89,115"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M159,115 A4,4 0 1,1 151,115 A4,4 0 1,1 159,115"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M89,140 A4,4 0 1,1 81,140 A4,4 0 1,1 89,140"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M159,140 A4,4 0 1,1 151,140 A4,4 0 1,1 159,140"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M104,185 A4,4 0 1,1 96,185 A4,4 0 1,1 104,185"/>
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M144,185 A4,4 0 1,1 136,185 A4,4 0 1,1 144,185"/>
+
+    <!-- Form Analysis Lines -->
+    <path
+        android:strokeColor="#00E676"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M65,140L175,140"/>
+    <path
+        android:strokeColor="#00E676"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M100,185L140,185"/>
+
+    <!-- Angle Indicators for Proper Form -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M85,115A25,25 0 0 1 85,140"/>
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M155,115A25,25 0 0 0 155,140"/>
+
+    <!-- AI Analysis Circle -->
+    <path
+        android:strokeColor="#304FFE"
+        android:strokeWidth="1"
+        android:fillColor="#00000000"
+        android:pathData="M210,120 A90,90 0 1,1 30,120 A90,90 0 1,1 210,120"/>
+</vector>
