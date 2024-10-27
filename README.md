@@ -11,25 +11,21 @@ Features
 
 Technologies Used
 
-Kotlin: The core language for app development, leveraging Android’s Jetpack Compose for a seamless UI experience.
-Mediapipe and MoveNet: Implements Mediapipe and TensorFlow Lite’s MoveNet model for precise, real-time pose estimation and analysis.
-Android Camera: Integrated with the Android camera for live feedback, allowing users to see their pose in real-time.
+1) Kotlin: The core language for app development, leveraging Android’s Jetpack Compose for a seamless UI experience.
+2) Mediapipe and MoveNet: Implements Mediapipe and TensorFlow Lite’s MoveNet model for precise, real-time pose estimation and analysis.
+3) Android Camera: Integrated with the Android camera for live feedback, allowing users to see their pose in real-time.
 
 
-Installation
-Clone the repository:
-bash
-Copy code
-git clone https://github.com/aashish1601/Pose-Perfect.git
-Open the project in Android Studio.
-Sync project dependencies.
-Build and run on an Android device with camera access.
+
 Usage
+
 Open the app and grant necessary permissions (e.g., camera).
 Position yourself in front of the camera to allow the app to detect your body posture.
 Start your exercise routine, and the app will provide real-time feedback to help you maintain proper form.
 Adjust your posture as per feedback to avoid injury.
+
 Future Enhancements
-Exercise Recommendations: Adding guided workouts based on user posture.
-Workout History Tracking: Allow users to view and track improvements over time.
-Augmented Reality Feedback: Enhanced AR-based overlays for more intuitive guidance.
+
+1) Exercise Recommendations: Adding guided workouts based on user posture.
+2) Workout History Tracking: Allow users to view and track improvements over time.
+3) Augmented Reality Feedback: Enhanced AR-based overlays for more intuitive guidance.
