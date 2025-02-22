@@ -1,6 +1,5 @@
 package com.example.pose
 
-
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
@@ -14,12 +13,15 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val repBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val statusBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bodyPath = Path()
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
     private val points = FloatArray(33 * 2)
     private val exerciseTracker = ExerciseTracker()
+    private val cornerRadius = 30f
 
     private val bodySegments = arrayOf(
         intArrayOf(11, 12),    // Shoulders
@@ -58,6 +60,17 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
             style = Paint.Style.FILL
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
+
+        repBoxPaint.apply {
+            style = Paint.Style.FILL
+            color = Color.parseColor("#80000000") // Semi-transparent black
+            setShadowLayer(10f, 0f, 0f, Color.BLACK)
+        }
+
+        statusBoxPaint.apply {
+            style = Paint.Style.FILL
+            setShadowLayer(10f, 0f, 0f, Color.BLACK)
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -68,12 +81,10 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                 drawBodySegments(canvas)
                 drawLandmarkPoints(canvas)
 
-                // Process exercise tracking
                 val detectedExercise = exerciseTracker.detectExerciseType(landmarks)
                 exerciseTracker.processExercise(landmarks, detectedExercise)
 
-                // Draw exercise information
-                drawExerciseInfo(canvas)
+                drawEnhancedExerciseInfo(canvas)
             }
         }
     }
@@ -105,33 +116,86 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         }
     }
 
-    private fun drawExerciseInfo(canvas: Canvas) {
-        // Draw rep counter
-        textPaint.apply {
-            textSize = 80f
-            color = Color.WHITE
+    private fun drawEnhancedExerciseInfo(canvas: Canvas) {
+        val padding = 20f
+        val boxSpacing = 20f
+
+        // Draw rep counter box
+        val repCountText = "REPS: ${exerciseTracker.getRepCount()}"
+        textPaint.textSize = 80f
+        val repCountBounds = Rect()
+        textPaint.getTextBounds(repCountText, 0, repCountText.length, repCountBounds)
+
+        val repBoxRect = RectF(
+            padding,
+            padding,
+            padding + repCountBounds.width() + 60f,
+            padding + repCountBounds.height() + 40f
+        )
+
+        canvas.drawRoundRect(repBoxRect, cornerRadius, cornerRadius, repBoxPaint)
+        canvas.drawText(repCountText,
+            repBoxRect.left + 30f,
+            repBoxRect.bottom - 20f,
+            textPaint.apply { color = Color.WHITE })
+
+        // Draw status box
+        val statusText = exerciseTracker.repStatus
+        textPaint.textSize = 60f
+        val statusBounds = Rect()
+        textPaint.getTextBounds(statusText, 0, statusText.length, statusBounds)
+
+        val statusBoxRect = RectF(
+            padding,
+            repBoxRect.bottom + boxSpacing,
+            padding + statusBounds.width() + 60f,
+            repBoxRect.bottom + boxSpacing + statusBounds.height() + 40f
+        )
+
+        statusBoxPaint.color = when {
+            statusText.contains("Good") -> Color.parseColor("#80228B22") // Semi-transparent green
+            statusText.contains("Start") -> Color.parseColor("#80FFD700") // Semi-transparent gold
+            else -> Color.parseColor("#80000000") // Semi-transparent black
         }
-        canvas.drawText("Reps: ${exerciseTracker.getRepCount()}", 50f, 100f, textPaint)
+
+        canvas.drawRoundRect(statusBoxRect, cornerRadius, cornerRadius, statusBoxPaint)
+        canvas.drawText(statusText,
+            statusBoxRect.left + 30f,
+            statusBoxRect.bottom - 20f,
+            textPaint.apply {
+                color = when {
+                    statusText.contains("Good") -> Color.WHITE
+                    statusText.contains("Start") -> Color.BLACK
+                    else -> Color.WHITE
+                }
+            })
 
         // Draw form feedback
-        textPaint.apply {
-            textSize = 60f
-            color = when {
-                exerciseTracker.formFeedback.contains("Good") -> Color.GREEN
-                else -> Color.RED
-            }
-        }
-        canvas.drawText(exerciseTracker.formFeedback, 50f, 180f, textPaint)
+        val feedbackText = exerciseTracker.formFeedback
+        textPaint.textSize = 50f
+        val feedbackBounds = Rect()
+        textPaint.getTextBounds(feedbackText, 0, feedbackText.length, feedbackBounds)
 
-        // Draw rep status
-        textPaint.apply {
-            color = when {
-                exerciseTracker.repStatus.contains("Good") -> Color.GREEN
-                exerciseTracker.repStatus.contains("Start") -> Color.YELLOW
-                else -> Color.WHITE
-            }
+        val feedbackBoxRect = RectF(
+            padding,
+            statusBoxRect.bottom + boxSpacing,
+            padding + feedbackBounds.width() + 60f,
+            statusBoxRect.bottom + boxSpacing + feedbackBounds.height() + 40f
+        )
+
+        statusBoxPaint.color = when {
+            feedbackText.contains("Good") -> Color.parseColor("#80228B22") // Semi-transparent green
+            else -> Color.parseColor("#80FF4444") // Semi-transparent red
         }
-        canvas.drawText(exerciseTracker.repStatus, 50f, 260f, textPaint)
+
+        canvas.drawRoundRect(feedbackBoxRect, cornerRadius, cornerRadius, statusBoxPaint)
+        canvas.drawText(feedbackText,
+            feedbackBoxRect.left + 30f,
+            feedbackBoxRect.bottom - 20f,
+            textPaint.apply {
+                color = Color.WHITE
+                textSize = 50f
+            })
     }
 
     fun setResults(

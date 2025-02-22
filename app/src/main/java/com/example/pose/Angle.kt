@@ -22,6 +22,8 @@ class PoseAngleCalculator {
         private val SQUAT_DETECTION_KNEE_RANGE = 60.0..120.0
         private val PUSHUP_DETECTION_ELBOW_RANGE = 70.0..110.0
         private val SHOULDER_PRESS_DETECTION_RANGE = 150.0..180.0
+        private const val MAX_ELBOW_FLARE_ANGLE = 15.0 // Maximum allowed angle deviation for elbow alignment
+        private const val SYMMETRY_THRESHOLD = 10.0
 
         fun calculateShoulderAngle(landmarks: List<NormalizedLandmark>, isRight: Boolean): Double {
             val indices = if (isRight) RIGHT_SHOULDER_PRESS_INDICES else LEFT_SHOULDER_PRESS_INDICES
@@ -30,6 +32,89 @@ class PoseAngleCalculator {
                 landmarks[indices.second],
                 landmarks[indices.third]
             )
+        }
+        fun areElbowsInline(landmarks: List<NormalizedLandmark>): Boolean {
+            val leftShoulder = landmarks[11]
+            val rightShoulder = landmarks[12]
+            val leftElbow = landmarks[13]
+            val rightElbow = landmarks[14]
+
+            // Calculate the angle between shoulders line and each elbow
+            val shoulderLineAngle = Math.toDegrees(
+                atan2(
+                    (rightShoulder.y() - leftShoulder.y()).toDouble(),
+                    (rightShoulder.x() - leftShoulder.x()).toDouble()
+                )
+            )
+
+            // Calculate elbow angles relative to shoulder line
+            val leftElbowAngle = Math.toDegrees(
+                atan2(
+                    (leftElbow.y() - leftShoulder.y()).toDouble(),
+                    (leftElbow.x() - leftShoulder.x()).toDouble()
+                )
+            )
+
+            val rightElbowAngle = Math.toDegrees(
+                atan2(
+                    (rightElbow.y() - rightShoulder.y()).toDouble(),
+                    (rightElbow.x() - rightShoulder.x()).toDouble()
+                )
+            )
+
+            // Calculate the deviation from the ideal alignment
+            val leftDeviation = (leftElbowAngle - shoulderLineAngle).absoluteValue
+            val rightDeviation = (rightElbowAngle - shoulderLineAngle).absoluteValue
+
+            // Elbows are considered inline if their deviation is within the acceptable range
+            return leftDeviation <= MAX_ELBOW_FLARE_ANGLE && rightDeviation <= MAX_ELBOW_FLARE_ANGLE
+        }
+        fun isGoodForm(landmarks: List<NormalizedLandmark>, exerciseType: ExerciseType): Boolean {
+            return when (exerciseType) {
+                ExerciseType.SHOULDER_PRESS -> {
+                    val isVertical = isBodyVertical(landmarks)
+
+                    // Check symmetry between left and right shoulders
+                    val leftShoulderAngle = calculateShoulderAngle(landmarks, false)
+                    val rightShoulderAngle = calculateShoulderAngle(landmarks, true)
+                    val isSymmetrical = (leftShoulderAngle - rightShoulderAngle).absoluteValue <= SYMMETRY_THRESHOLD
+
+                    // Check if elbows are properly aligned
+                    val elbowsNotFlared = areElbowsInline(landmarks)
+
+                    isVertical && isSymmetrical && elbowsNotFlared
+                }
+
+                ExerciseType.PUSHUP -> {
+                    val isHorizontal = isBodyHorizontal(landmarks)
+                    val leftElbowAngle = calculateElbowAngle(landmarks, false)
+                    val rightElbowAngle = calculateElbowAngle(landmarks, true)
+                    val isSymmetrical = (leftElbowAngle - rightElbowAngle).absoluteValue <= SYMMETRY_THRESHOLD
+                    val elbowsNotFlared = areElbowsInline(landmarks)
+
+                    isHorizontal && isSymmetrical && elbowsNotFlared
+                }
+
+                ExerciseType.SQUAT -> {
+                    val isVertical = isBodyVertical(landmarks)
+                    val leftKneeAngle = calculateKneeAngle(landmarks, false)
+                    val rightKneeAngle = calculateKneeAngle(landmarks, true)
+                    val isSymmetrical = (leftKneeAngle - rightKneeAngle).absoluteValue <= SYMMETRY_THRESHOLD
+
+                    isVertical && isSymmetrical
+                }
+
+                ExerciseType.BICEP_CURL -> {
+                    val isVertical = isBodyVertical(landmarks)
+                    val leftElbowAngle = calculateElbowAngle(landmarks, false)
+                    val rightElbowAngle = calculateElbowAngle(landmarks, true)
+                    val isSymmetrical = (leftElbowAngle - rightElbowAngle).absoluteValue <= SYMMETRY_THRESHOLD
+
+                    isVertical && isSymmetrical
+                }
+
+                ExerciseType.NONE -> false
+            }
         }
 
         fun calculateHipAngle(landmarks: List<NormalizedLandmark>, isRight: Boolean): Double {

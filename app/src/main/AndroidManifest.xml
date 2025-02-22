@@ -41,6 +41,9 @@
         <activity
             android:name=".ExerciseSelectionActivity"
             android:exported="false" />
+        <activity
+            android:name=".ExerciseConfigActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

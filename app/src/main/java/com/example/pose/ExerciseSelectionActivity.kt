@@ -26,7 +26,7 @@ class ExerciseSelectionActivity : AppCompatActivity() {
 
         // Set up click listener for shoulder press exercise
         binding.shoulderPressCard.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java).apply {
+            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
                 putExtra("EXERCISE_TYPE", "SHOULDER_PRESS")
             }
             startActivity(intent)

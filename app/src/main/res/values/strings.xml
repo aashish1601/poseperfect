@@ -50,7 +50,18 @@
     <string name="shoulder_press">Shoulder Press</string>
     <string name="select_exercise">Select Exercise</string>
     <string name="check_your_shoulder_press_form">Check your shoulder press form</string>
+    <string name="rest_time_seconds">%1$d seconds</string>
 
+    <!-- Error Messages -->
+    <string name="error_enter_target_reps">Please enter target reps</string>
+    <string name="error_enter_valid_number">Please enter a valid number</string>
+    <string name="error_minimum_reps">Minimum 1 rep required</string>
+    <string name="error_maximum_reps">Maximum 999 reps allowed</string>
+    <string name="error_enter_valid_target_reps">Please enter valid target reps</string>
+    <string name="error_invalid_targets">Please set valid targets for sets and reps</string>
+    <string name="switch_camera">switch_camera</string>
+    <string name="error_select_mode">Please select a workout mode</string>
+    <string name="logo_name">Pose Perfect</string>
     <string-array name="delegate_spinner_titles">
         <item>CPU</item>
         <item>GPU</item>

@@ -22,4 +22,6 @@
     <color name="icPressed">#AAFFFFFF</color>
     <color name="statuts_bar_colour">#DDFFFFFF</color>
     <color name="gray">#757575</color>
+    <color name="green"> #90EE90</color>
+
 </resources>
