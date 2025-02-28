@@ -21,8 +21,10 @@
         private val workoutViewModel: WorkoutViewModel by viewModels()
         val viewModel: MainViewModel by viewModels()
 
+
         // Add enum for rep modes
         enum class RepMode { TARGET, INFINITE,NO_COUNTING,COUNT_UP }
+
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
@@ -30,6 +32,7 @@
 
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
+
 
             setupNavigation()
             setupWorkoutTracking()

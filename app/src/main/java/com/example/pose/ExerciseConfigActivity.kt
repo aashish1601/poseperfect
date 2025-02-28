@@ -25,13 +25,16 @@ class ExerciseConfigActivity : AppCompatActivity() {
         binding = ActivityExerciseConfigBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+
         exerciseType = intent.getStringExtra("EXERCISE_TYPE") ?: "SHOULDER_PRESS"
         binding.exerciseNameText.text = formatExerciseName(exerciseType)
+
 
         setupUI()
         setupListeners()
         setupTargetModeSwitch()
     }
+
 
     private fun formatExerciseName(name: String): String {
         return name.replace("_", " ")
@@ -89,6 +92,7 @@ class ExerciseConfigActivity : AppCompatActivity() {
             }
         }
 
+
         binding.countUpMode.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 selectedRepMode = MainActivity.RepMode.COUNT_UP
@@ -143,10 +147,16 @@ class ExerciseConfigActivity : AppCompatActivity() {
             }
         })
 
+
         // Setup start button
         binding.startButton.setOnClickListener {
             startExercise()
         }
+        binding.showprogressbutton.setOnClickListener {
+            val intent = Intent(this, ProgressSelectionActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     private fun setupTargetModeSwitch() {

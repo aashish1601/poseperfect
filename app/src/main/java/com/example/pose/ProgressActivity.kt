@@ -15,6 +15,7 @@ class ProgressActivity : AppCompatActivity() {
             .replace(R.id.fragment_container, ProgressFragment())
             .commit()
 
+
     }
     override fun onSupportNavigateUp(): Boolean {
         onBackPressed()

@@ -50,6 +50,12 @@
         <activity
             android:name=".ProgressActivity"
             android:exported="false" />
+        <activity
+            android:name=".ProgressSelectionActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ProgressDetailsActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
