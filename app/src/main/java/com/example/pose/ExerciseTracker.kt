@@ -14,7 +14,7 @@ class ExerciseTracker {
     private var isUpPosition = false
     private var isDownPosition = false
     private var lastGoodForm = false
-    private var currentExerciseType = ExerciseType.NONE
+    var currentExerciseType: ExerciseType = ExerciseType.NONE
 
     var repStatus = "Start exercise"
         private set
@@ -60,6 +60,19 @@ class ExerciseTracker {
 
     fun getRepCount() = repCount
 
+    // Add this method to reset rep count
+    fun resetRepCount() {
+        repCount = 0
+        repStatus = "Start exercise"
+        formFeedback = ""
+    }
+
+    // Add this method to set exercise type
+    fun setExerciseType(type: ExerciseType) {
+        currentExerciseType = type
+        resetExercise()
+    }
+
     fun resetExercise() {
         repCount = 0
         isUpPosition = false
@@ -86,6 +99,8 @@ class ExerciseTracker {
             ExerciseType.NONE -> resetExercise()
         }
     }
+
+    // ... [rest of the existing methods remain the same]
 
     private fun processShoulderPress(landmarks: List<NormalizedLandmark>) {
         val config = exerciseConfigs[ExerciseType.SHOULDER_PRESS]!!
@@ -147,12 +162,6 @@ class ExerciseTracker {
             isCorrect = asymmetry <= config.maxAsymmetry
         )
 
-
-
-
-
-
-
         leftJoint = JointAngle(
             angle = leftAngle,
             jointName = "${config.jointName} (Left)",
@@ -192,7 +201,6 @@ class ExerciseTracker {
         isGoodForm: Boolean
     ) {
         when {
-            // Check for down position first
             !isDownPosition && isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange) -> {
                 isDownPosition = true
                 isUpPosition = false
@@ -203,7 +211,6 @@ class ExerciseTracker {
                 }
                 lastGoodForm = isGoodForm
             }
-            // Check for up position and count rep if coming from down position
             !isUpPosition && isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange) -> {
                 if (isDownPosition && lastGoodForm) {
                     isUpPosition = true
@@ -222,7 +229,6 @@ class ExerciseTracker {
                     }
                 }
             }
-            // Reset for next rep when returning to down position
             isUpPosition && isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange) -> {
                 isUpPosition = false
                 isDownPosition = true

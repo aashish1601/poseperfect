@@ -37,6 +37,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     companion object {
         private const val TAG = "Pose Landmarker"
     }
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
 
@@ -108,12 +109,14 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
         _fragmentCameraBinding =
             FragmentCameraBinding.inflate(inflater, container, false)
 
+
         return fragmentCameraBinding.root
     }
 
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        fragmentCameraBinding.overlay.setViewModel(mainViewModel)
 
         backgroundExecutor = Executors.newSingleThreadExecutor()
 

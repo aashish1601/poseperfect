@@ -1,0 +1,87 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Bars -->
+    <path
+        android:name="bar1"
+        android:pathData="M4,10 L4,20"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+
+    <path
+        android:name="bar2"
+        android:pathData="M8,14 L8,20"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+
+    <path
+        android:name="bar3"
+        android:pathData="M12,8 L12,20"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+
+    <path
+        android:name="bar4"
+        android:pathData="M16,12 L16,20"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+
+    <path
+        android:name="bar5"
+        android:pathData="M20,6 L20,20"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+
+    <!-- Line graph -->
+    <path
+        android:name="graph_line"
+        android:pathData="M4,10 L12,8 L16,12 L20,6"
+        android:strokeColor="#333333"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+    <!-- Data Points -->
+    <path
+        android:name="point1"
+        android:pathData="M4,10 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"/>
+
+    <path
+        android:name="point2"
+        android:pathData="M12,8 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"/>
+
+    <path
+        android:name="point3"
+        android:pathData="M16,12 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"/>
+
+    <path
+        android:name="point4"
+        android:pathData="M20,6 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"/>
+
+    <!-- Baseline -->
+    <path
+        android:name="baseline"
+        android:pathData="M2,20 L22,20"
+        android:strokeColor="#777777"
+        android:strokeWidth="0.5"/>
+</vector>

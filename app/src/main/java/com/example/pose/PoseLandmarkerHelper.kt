@@ -334,9 +334,6 @@ class PoseLandmarkerHelper(
             )
         )
     }
-
-    // Return errors thrown during detection to this PoseLandmarkerHelper's
-    // caller
     private fun returnLivestreamError(error: RuntimeException) {
         poseLandmarkerHelperListener?.onError(
             error.message ?: "An unknown error has occurred"

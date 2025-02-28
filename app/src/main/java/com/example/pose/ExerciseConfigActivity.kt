@@ -4,23 +4,21 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+
 import com.example.pose.databinding.ActivityExerciseConfigBinding
-import com.google.android.material.snackbar.Snackbar
 import java.util.Locale
 
-enum class RepMode {
-    NO_COUNTING,
-    COUNT_UP,
-    TARGET
-}
+
 
 class ExerciseConfigActivity : AppCompatActivity() {
     private lateinit var binding: ActivityExerciseConfigBinding
     private var exerciseType: String = ""
     private var validTargetReps = false
-    private var selectedRepMode: RepMode = RepMode.NO_COUNTING
+    private var selectedRepMode: MainActivity.RepMode = MainActivity.RepMode.NO_COUNTING
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +30,7 @@ class ExerciseConfigActivity : AppCompatActivity() {
 
         setupUI()
         setupListeners()
+        setupTargetModeSwitch()
     }
 
     private fun formatExerciseName(name: String): String {
@@ -76,7 +75,7 @@ class ExerciseConfigActivity : AppCompatActivity() {
         // Setup mode selection listener with improved visibility handling
         binding.noCountingMode.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                selectedRepMode = RepMode.NO_COUNTING
+                selectedRepMode = MainActivity.RepMode.NO_COUNTING
                 binding.targetSettingsLayout.visibility = View.GONE
                 binding.targetRepsInput.text?.clear()
                 binding.targetRepsInputLayout.error = null
@@ -84,12 +83,15 @@ class ExerciseConfigActivity : AppCompatActivity() {
                 // Ensure only one mode is selected
                 binding.countUpMode.isChecked = false
                 binding.targetMode.isChecked = false
+
+                // Log the state for debugging
+                Log.d("ExerciseConfig", "No counting mode enabled by user")
             }
         }
 
         binding.countUpMode.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                selectedRepMode = RepMode.COUNT_UP
+                selectedRepMode = MainActivity.RepMode.COUNT_UP
                 binding.targetSettingsLayout.visibility = View.GONE
                 binding.targetRepsInput.text?.clear()
                 binding.targetRepsInputLayout.error = null
@@ -97,18 +99,24 @@ class ExerciseConfigActivity : AppCompatActivity() {
                 // Ensure only one mode is selected
                 binding.noCountingMode.isChecked = false
                 binding.targetMode.isChecked = false
+
+                // Log the state for debugging
+                Log.d("ExerciseConfig", "Count up mode enabled by user")
             }
         }
 
         binding.targetMode.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                selectedRepMode = RepMode.TARGET
+                selectedRepMode = MainActivity.RepMode.TARGET
                 binding.targetSettingsLayout.visibility = View.VISIBLE
                 binding.targetRepsInput.requestFocus()
 
                 // Ensure only one mode is selected
                 binding.noCountingMode.isChecked = false
                 binding.countUpMode.isChecked = false
+
+                // Log the state for debugging
+                Log.d("ExerciseConfig", "Target mode enabled by user")
             }
         }
 
@@ -137,8 +145,16 @@ class ExerciseConfigActivity : AppCompatActivity() {
 
         // Setup start button
         binding.startButton.setOnClickListener {
-            handleStartButtonClick()
+            startExercise()
         }
+    }
+
+    private fun setupTargetModeSwitch() {
+        // This function is now integrated within the setOnCheckedChangeListener
+        // for the target mode radio button and setupListeners()
+
+        // Additional logging for initial state
+        Log.d("ExerciseConfig", "Target mode initial state: ${selectedRepMode == MainActivity.RepMode.TARGET}")
     }
 
     private fun validateTargetReps(input: String?): Boolean {
@@ -166,59 +182,78 @@ class ExerciseConfigActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleStartButtonClick() {
-        // Check if any mode is selected
-        if (selectedRepMode == RepMode.NO_COUNTING) {
-            startExercise(selectedRepMode, 0, 0, 0)
-        } else if (selectedRepMode == RepMode.COUNT_UP) {
-            startExercise(selectedRepMode, 0, 0, 0)
-        } else if (selectedRepMode == RepMode.TARGET) {
-            if (!validTargetReps) {
-                Snackbar.make(
-                    binding.root,
-                    R.string.error_enter_valid_target_reps,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                return
+    private fun startExercise() {
+        val targetSets = binding.setsNumberPicker.value
+        val restTime = binding.restTimeSlider.value.toInt()
+
+        when (selectedRepMode) {
+            MainActivity.RepMode.TARGET -> {
+                val targetReps = binding.targetRepsInput.text.toString().toIntOrNull() ?: 0
+
+                if (targetReps < 1 || targetSets < 1) {
+                    Toast.makeText(this, "Enter valid rep/set counts", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra("EXERCISE_TYPE", exerciseType)
+                    putExtra("REP_MODE", MainActivity.RepMode.TARGET.name)
+                    putExtra("TARGET_REPS", targetReps)
+                    putExtra("TARGET_SETS", targetSets)
+                    putExtra("REST_TIME", restTime)
+                    startActivity(this)
+                }
+                finish()
             }
 
-            val targetReps = binding.targetRepsInput.text.toString().toInt()
-            val targetSets = binding.setsNumberPicker.value
-            val restTime = binding.restTimeSlider.value.toInt()
-
-            if (targetSets < 1 || targetReps < 1) {
-                Snackbar.make(
-                    binding.root,
-                    R.string.error_invalid_targets,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                return
+            MainActivity.RepMode.NO_COUNTING -> {
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra("EXERCISE_TYPE", exerciseType)
+                    putExtra("REP_MODE", MainActivity.RepMode.NO_COUNTING.name)
+                    putExtra("TARGET_SETS", targetSets)
+                    putExtra("REST_TIME", restTime)
+                    startActivity(this)
+                }
+                finish()
             }
 
-            startExercise(selectedRepMode, targetSets, targetReps, restTime)
-        } else {
-            Snackbar.make(binding.root, R.string.error_select_mode, Snackbar.LENGTH_SHORT).show()
-            return
+            MainActivity.RepMode.COUNT_UP -> {
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra("EXERCISE_TYPE", exerciseType)
+                    putExtra("REP_MODE", MainActivity.RepMode.COUNT_UP.name)
+                    putExtra("TARGET_SETS", targetSets)
+                    putExtra("REST_TIME", restTime)
+                    startActivity(this)
+                }
+                finish()
+            }
+
+            MainActivity.RepMode.INFINITE -> {
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra("EXERCISE_TYPE", exerciseType)
+                    putExtra("REP_MODE", MainActivity.RepMode.INFINITE.name)
+                    startActivity(this)
+                }
+                finish()
+            }
         }
     }
 
-    private fun startExercise(
-        repMode: RepMode,
+    // Renamed to avoid confusion with the new startExercise function
+    private fun startExerciseWithParams(
+        repMode: MainActivity.RepMode,
         targetSets: Int = 0,
         targetReps: Int = 0,
         restTime: Int = 0
     ) {
-        if (binding.noCountingMode.isChecked || binding.countUpMode.isChecked || binding.targetMode.isChecked) {
-            val intent = Intent(this, MainActivity::class.java).apply {
-                putExtra("EXERCISE_TYPE", exerciseType)
-                putExtra("REP_MODE", repMode.name)
-                putExtra("TARGET_SETS", targetSets)
-                putExtra("TARGET_REPS", targetReps)
-                putExtra("REST_TIME", restTime)
-            }
-            startActivity(intent)
-        } else {
-            Snackbar.make(binding.root, R.string.error_select_mode, Snackbar.LENGTH_SHORT).show()
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("EXERCISE_TYPE", exerciseType)
+            putExtra("REP_MODE", repMode.name) // Pass enum name directly
+            putExtra("TARGET_SETS", targetSets)
+            putExtra("TARGET_REPS", targetReps)
+            putExtra("REST_TIME", restTime)
         }
+        startActivity(intent)
+        finish()
     }
 }

@@ -30,5 +30,6 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, ExerciseSelectionActivity::class.java)
             startActivity(intent)
         }
+
     }
 }

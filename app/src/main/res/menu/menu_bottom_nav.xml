@@ -9,4 +9,9 @@
         android:id="@id/gallery_fragment"
         android:icon="@drawable/ic_baseline_photo_library_24"
         android:title="@string/menu_gallery" />
+    <item
+        android:id="@+id/progress_tracking"
+        android:icon="@drawable/ic_progress"
+        android:title="@string/progress_tracking" />
+
 </menu>

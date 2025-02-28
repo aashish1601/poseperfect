@@ -37,12 +37,18 @@
         </activity>
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout"
+            android:screenOrientation="fullUser"
+            android:windowSoftInputMode="stateAlwaysHidden"
             android:exported="false" />
         <activity
             android:name=".ExerciseSelectionActivity"
             android:exported="false" />
         <activity
             android:name=".ExerciseConfigActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ProgressActivity"
             android:exported="false" />
     </application>
 

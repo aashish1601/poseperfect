@@ -15,6 +15,7 @@
     ~ limitations under the License.
 -->
 <resources>
+
     <string name="app_name">Pose Perfect</string>
 
     <string name="media_pipe">Pose Perfect</string>
@@ -72,4 +73,9 @@
         <item>Pose Landmarker Lite</item>
         <item>Pose Landmarker Heavy</item>
     </string-array>
+
+    <string name="reps_format">Reps: %1$d/%2$d</string>
+    <string name="sets_format">Sets: %1$d/%2$d</string>
+    <string name="rest_time_format">Rest: %ds</string>
+    <string name="progress_tracking">track</string>
 </resources>

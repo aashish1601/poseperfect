@@ -23,6 +23,18 @@
                 android:layout_height="wrap_content"
                 android:src="@drawable/media_pipe_banner"
                 android:contentDescription="@null" />
+
+            <!-- Debug button positioned at the right of the toolbar -->
+            <Button
+                android:id="@+id/debugButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="16dp"
+                android:text="Debug"
+                android:textSize="12sp"
+                android:backgroundTint="@color/design_default_color_secondary"
+                android:visibility="gone" />
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.fragment.app.FragmentContainerView
@@ -37,7 +49,7 @@
             app:navGraph="@navigation/nav_graph"
             tools:context=".MainActivity" />
 
-        <!-- Add the OverlayView here -->
+        <!-- OverlayView -->
         <com.example.pose.OverlayView
             android:id="@+id/overlayView"
             android:layout_width="match_parent"
@@ -60,6 +72,50 @@
             android:layout_height="1dp"
             android:layout_above="@id/navigation"
             android:background="@android:color/darker_gray" />
+
+        <!-- Floating debug panel that can be shown/hidden -->
+        <LinearLayout
+            android:id="@+id/debugPanel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_above="@id/navigation"
+            android:layout_margin="16dp"
+            android:background="#80000000"
+            android:padding="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Debug Controls"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/forceTargetModeButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Force Target Mode"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/resetModeButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reset Mode"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/debugStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Status: Normal"
+                android:textColor="@android:color/white"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
 
     </RelativeLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

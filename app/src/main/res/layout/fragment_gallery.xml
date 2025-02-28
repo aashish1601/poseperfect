@@ -68,7 +68,10 @@
             app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+
+
     <include
         android:id="@+id/bottom_sheet_layout"
         layout="@layout/info_bottom_sheet" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
