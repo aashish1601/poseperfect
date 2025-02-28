@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/workout_date"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="February 25, 2025"
+        android:textColor="@color/black"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/workout_reps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="24 reps"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -15,11 +15,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         repository = WorkoutRepository(workoutDao)
         allSessions = repository.allSessions
     }
+
     fun refreshSessions() = viewModelScope.launch {
         repository.refreshSessions()
     }
 
     fun insert(session: WorkoutSession) = viewModelScope.launch {
         repository.insertWorkoutSession(session)
+    }
+
+    fun getSessionsByExercise(exerciseType: String): LiveData<List<WorkoutSession>> {
+        return repository.getSessionsByExercise(exerciseType)
     }
 }

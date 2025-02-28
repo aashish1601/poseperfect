@@ -1,6 +1,5 @@
 package com.example.pose
 
-
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
@@ -31,6 +30,32 @@ class ExerciseSelectionActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+
+        // Set up click listener for squat exercise
+        binding.squatCard.setOnClickListener {
+            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
+                putExtra("EXERCISE_TYPE", "SQUAT")
+            }
+            startActivity(intent)
+        }
+
+        // Add click listeners for other exercise cards if they exist
+        // Example for pushup card
+        /*
+        binding.pushupCard.setOnClickListener {
+            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
+                putExtra("EXERCISE_TYPE", "PUSHUP")
+            }
+            startActivity(intent)
+        }
+
+        // Example for bicep curl card
+        binding.bicepCurlCard.setOnClickListener {
+            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
+                putExtra("EXERCISE_TYPE", "BICEP_CURL")
+            }
+            startActivity(intent)
+        }
+        */
     }
 }
-

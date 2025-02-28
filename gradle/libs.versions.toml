@@ -19,6 +19,7 @@ lifecycleViewmodelKtx = "2.8.7"
 lifecycleViewmodelKtxVersion = "2.6.2"
 mediapipeAndroid = "0.10.14"
 mediapipeAndroidExample = "0.10.14"
+mpandroidchart = "v3.1.0"
 navigationFragmentKtx = "2.8.3"
 navigationUiKtx = "2.8.3"
 recyclerview = "1.2.1"
@@ -72,6 +73,7 @@ androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navi
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
 mediapipe-android = { module = "com.google.mediapipe:mediapipe-android", version.ref = "mediapipeAndroid" }
 mediapipe-android-example = { module = "com.google.mediapipe:mediapipe-android-example", version.ref = "mediapipeAndroidExample" }
+mpandroidchart = { module = "com.github.PhilJay:MPAndroidChart", version.ref = "mpandroidchart" }
 tasks-vision = { module = "com.google.mediapipe:tasks-vision", version.ref = "tasksVision" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }

@@ -144,7 +144,19 @@ class PoseAngleCalculator {
             )
         }
 
-        fun detectExerciseType(landmarks: List<NormalizedLandmark>): ExerciseType {
+        fun detectExerciseType(landmarks: List<NormalizedLandmark>, selectedExerciseType: String? = null): ExerciseType {
+            // If an exercise type was selected in the UI, use it
+            if (selectedExerciseType != null) {
+                return when (selectedExerciseType) {
+                    "SHOULDER_PRESS" -> ExerciseType.SHOULDER_PRESS
+                    "SQUAT" -> ExerciseType.SQUAT
+                    "PUSHUP" -> ExerciseType.PUSHUP
+                    "BICEP_CURL" -> ExerciseType.BICEP_CURL
+                    else -> ExerciseType.NONE
+                }
+            }
+
+            // Otherwise fall back to automatic detection
             val rightKneeAngle = calculateKneeAngle(landmarks, true)
             val rightElbowAngle = calculateElbowAngle(landmarks, true)
             val rightShoulderAngle = calculateShoulderAngle(landmarks, true)

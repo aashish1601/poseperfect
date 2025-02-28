@@ -3,11 +3,7 @@ package com.example.pose
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlin.math.abs
 
-data class JointAngle(
-    val angle: Double,
-    val jointName: String,
-    val isCorrect: Boolean
-)
+
 
 class ExerciseTracker {
     private var repCount = 0
