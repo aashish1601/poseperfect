@@ -1,7 +1,7 @@
 package com.example.pose
 
+import android.animation.ValueAnimator
 import android.content.Context
-import android.content.Intent
 import android.graphics.*
 import android.os.CountDownTimer
 import android.util.AttributeSet
@@ -10,6 +10,8 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import java.util.Locale
+
 class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
 
     interface WorkoutCompletionListener {
@@ -17,49 +19,52 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     }
     private var viewModel: MainViewModel? = null
 
-
     private var results: PoseLandmarkerResult? = null
     private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val repBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val statusBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val titleTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val infoBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val progressBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val progressForegroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bodyPath = Path()
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
     private val points = FloatArray(33 * 2)
     private val exerciseTracker = ExerciseTracker()
-    private val cornerRadius = 30f
-
-
-
+    private val cornerRadius = 24f
+    private val circleRadius = 80f
+    private val circlePadding = 40f
+    private val circleStrokeWidth = 14f
+    private val circleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+        duration = 300
+        addUpdateListener { invalidate() }
+    }
+    private var progressValue = 0f
+    private var targetProgressValue = 0f
 
     private var isInRestPeriod = false
     private var currentRestTime = 0
     private var restTimer: CountDownTimer? = null
+    private var lastRepCount = 0
+
     fun setViewModel(viewModel: MainViewModel) {
         this.viewModel = viewModel
-        invalidate() // Redraw if needed
+        invalidate()
     }
-
 
     private var workoutCompletionListener: WorkoutCompletionListener? = null
     fun setWorkoutCompletionListener(listener: WorkoutCompletionListener) {
         this.workoutCompletionListener = listener
     }
 
-
     fun getCurrentExerciseType(): String = exerciseTracker.currentExerciseType.name
     fun getCurrentReps(): Int = viewModel?.currentReps ?: 0
-    // In OverlayView.kt
     fun getCurrentSet(): Int = viewModel?.currentSet ?: 1
     fun getTargetReps(): Int = viewModel?.targetReps ?: 0
     fun getTargetSets(): Int = viewModel?.targetSets ?: 0
     fun getRestTimeSeconds(): Int = viewModel?.restTimeSeconds ?: 0
-
-
-
 
     private val bodySegments = arrayOf(
         intArrayOf(11, 12),    // Shoulders
@@ -98,6 +103,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
             Log.e("OverlayView", "ViewModel not initialized!")
         }
     }
+
     private var onExerciseCompleteListener: (() -> Unit)? = null
 
     fun setOnExerciseCompleteListener(listener: () -> Unit) {
@@ -121,29 +127,46 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
         textPaint.apply {
             color = Color.WHITE
-            textSize = 60f
+            textSize = 48f
             style = Paint.Style.FILL
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setShadowLayer(2f, 0f, 2f, Color.BLACK)
         }
 
-        repBoxPaint.apply {
+        titleTextPaint.apply {
+            color = Color.WHITE
+            textSize = 36f
             style = Paint.Style.FILL
-            color = Color.parseColor("#80000000") // Semi-transparent black
-            setShadowLayer(10f, 0f, 0f, Color.BLACK)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            setShadowLayer(2f, 0f, 2f, Color.BLACK)
         }
 
-        statusBoxPaint.apply {
+        infoBoxPaint.apply {
             style = Paint.Style.FILL
-            setShadowLayer(10f, 0f, 0f, Color.BLACK)
+            color = Color.parseColor("#AA000000") // More opaque black
+            setShadowLayer(8f, 0f, 4f, Color.BLACK)
+        }
+
+        progressBackgroundPaint.apply {
+            style = Paint.Style.STROKE
+            strokeWidth = circleStrokeWidth
+            color = Color.parseColor("#55FFFFFF") // Semi-transparent white
+            strokeCap = Paint.Cap.ROUND
+        }
+
+        progressForegroundPaint.apply {
+            style = Paint.Style.STROKE
+            strokeWidth = circleStrokeWidth
+            color = Color.parseColor("#4CAF50") // Green
+            strokeCap = Paint.Cap.ROUND
         }
     }
+
     override fun onDraw(canvas: Canvas) {
         viewModel?.let { vm ->
-            Log.d("OverlayView", "onDraw - isTargetMode: ${vm.isTargetMode}, currentReps: ${vm.currentReps}, targetReps: ${vm.targetReps}")
-
             results?.let { poseLandmarkerResult ->
                 for (landmarks in poseLandmarkerResult.landmarks()) {
-                    // ... existing drawing code ...
+                    // Draw body landmarks
                     calculateScaledPoints(landmarks)
                     drawBodySegments(canvas)
                     drawLandmarkPoints(canvas)
@@ -153,6 +176,12 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                         exerciseTracker.processExercise(landmarks, detectedExercise)
                         vm.currentReps = exerciseTracker.getRepCount()
 
+                        // Animate progress when rep count changes
+                        if (lastRepCount != vm.currentReps) {
+                            animateProgress(vm.currentReps.toFloat() / vm.targetReps.toFloat())
+                            lastRepCount = vm.currentReps
+                        }
+
                         if (vm.isTargetMode && vm.currentReps >= vm.targetReps) {
                             if (vm.currentSet < vm.targetSets) {
                                 startRestPeriod(vm)
@@ -161,11 +190,24 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                             }
                         }
                     }
-                    drawEnhancedExerciseInfo(canvas, vm)
+                    drawEnhancedUI(canvas, vm)
                 }
             }
         }
     }
+
+    private fun animateProgress(targetValue: Float) {
+        targetProgressValue = targetValue.coerceIn(0f, 1f)
+        ValueAnimator.ofFloat(progressValue, targetProgressValue).apply {
+            duration = 300
+            addUpdateListener { animator ->
+                progressValue = animator.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+
     private fun startRestPeriod(viewModel: MainViewModel) {
         isInRestPeriod = true
         currentRestTime = viewModel.restTimeSeconds
@@ -182,11 +224,13 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                 viewModel.currentSet++
                 viewModel.currentReps = 0
                 exerciseTracker.resetRepCount()
+                progressValue = 0f
+                targetProgressValue = 0f
+                lastRepCount = 0
                 invalidate()
             }
         }.start()
     }
-
 
     private fun calculateScaledPoints(landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>) {
         landmarks.forEachIndexed { index, landmark ->
@@ -215,79 +259,265 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         }
     }
 
-
-    private fun drawEnhancedExerciseInfo(canvas: Canvas, viewModel: MainViewModel) {
-        val padding = 20f
-        val boxSpacing = 20f
+    private fun drawEnhancedUI(canvas: Canvas, viewModel: MainViewModel) {
+        val padding = 24f
+        val margin = 16f
+        val boxHeight = 90f
         var yOffset = padding
+        val rectWidth = 400f
 
-        Log.d("OverlayView", "Drawing info - isTargetMode: $viewModel.isTargetMode, currentReps: $viewModel.currentReps, targetReps: $viewModel.targetReps, currentSet: $viewModel.currentSet, targetSets: $viewModel.targetSets")
 
-        // Draw target mode info if active
+        // Draw circular progress for rep counter
         if (viewModel.isTargetMode) {
-            // Draw set counter
-            val setCountText = "SET: ${viewModel.currentSet}/${viewModel.targetSets}"
-            drawInfoBox(canvas, setCountText, yOffset, Color.parseColor("#80000000"))
-            yOffset += 100f + boxSpacing
+            val circleX = padding + circleRadius + circlePadding
+            val circleY = yOffset + circleRadius + circlePadding
 
-            // Draw target reps
-            val targetText = "REPS: ${viewModel.currentReps}/${viewModel.targetReps}"
-            drawInfoBox(canvas, targetText, yOffset, Color.parseColor("#80000000"))
-            yOffset += 100f + boxSpacing
+            // Draw progress background
+            canvas.drawCircle(circleX, circleY, circleRadius, infoBoxPaint)
+            canvas.drawArc(
+                circleX - circleRadius,
+                circleY - circleRadius,
+                circleX + circleRadius,
+                circleY + circleRadius,
+                -90f,
+                360f,
+                false,
+                progressBackgroundPaint
+            )
+
+            // Draw progress arc
+            canvas.drawArc(
+                circleX - circleRadius,
+                circleY - circleRadius,
+                circleX + circleRadius,
+                circleY + circleRadius,
+                -90f,
+                360f * progressValue,
+                false,
+                progressForegroundPaint
+            )
+
+            // Draw rep text
+            val repText = "${viewModel.currentReps}"
+            val targetText = "/${viewModel.targetReps}"
+
+            textPaint.textSize = 64f
+            val repBounds = Rect()
+            textPaint.getTextBounds(repText, 0, repText.length, repBounds)
+
+            textPaint.textSize = 36f
+            val targetBounds = Rect()
+            textPaint.getTextBounds(targetText, 0, targetText.length, targetBounds)
+
+            // Draw rep count
+            textPaint.textSize = 64f
+            canvas.drawText(
+                repText,
+                circleX - repBounds.width() / 2,
+                circleY + repBounds.height() / 3,
+                textPaint
+            )
+
+            // Draw target
+            textPaint.textSize = 36f
+            canvas.drawText(
+                targetText,
+                circleX + repBounds.width() / 2 - 10f,
+                circleY + repBounds.height() / 3,
+                textPaint
+            )
+
+            // Draw set counter
+            textPaint.textSize = 36f
+            val setBox = RectF(
+                circleX + circleRadius + margin,
+                circleY - boxHeight / 2,
+                circleX + circleRadius + margin + 120f,
+                circleY + boxHeight / 2
+            )
+            canvas.drawRoundRect(setBox, cornerRadius, cornerRadius, infoBoxPaint)
+            canvas.drawText(
+                "SET",
+                setBox.left + 16f,
+                setBox.centerY() - 16f,
+                titleTextPaint
+            )
+            canvas.drawText(
+                "${viewModel.currentSet}/${viewModel.targetSets}",
+                setBox.left + 16f,
+                setBox.centerY() + 24f,
+                textPaint
+            )
+
+            yOffset += circleRadius * 2 + circlePadding * 2 + margin
 
             // Draw rest timer if in rest period
             if (isInRestPeriod) {
-                val restText = "REST: ${currentRestTime}s"
-                drawInfoBox(canvas, restText, yOffset, Color.parseColor("#80FFA500"))
-                yOffset += 100f + boxSpacing
+                val restColor = Color.parseColor("#FF9800") // Orange
+                progressForegroundPaint.color = restColor
+
+                val restBox = RectF(
+                    padding,
+                    yOffset,
+                    padding + rectWidth,
+                    yOffset + boxHeight
+                )
+                infoBoxPaint.color = Color.parseColor("#AAFF9800") // Semi-transparent orange
+                canvas.drawRoundRect(restBox, cornerRadius, cornerRadius, infoBoxPaint)
+                infoBoxPaint.color = Color.parseColor("#AA000000") // Reset color
+
+                titleTextPaint.textSize = 36f
+                canvas.drawText(
+                    "REST",
+                    restBox.left + 16f,
+                    restBox.centerY() - 16f,
+                    titleTextPaint
+                )
+
+                textPaint.textSize = 48f
+                canvas.drawText(
+                    "${currentRestTime}s",
+                    restBox.left + 16f,
+                    restBox.centerY() + 24f,
+                    textPaint
+                )
+
+                yOffset += boxHeight + margin
             }
         } else {
-            // Draw regular rep counter
-            val repCountText = "REPS: ${exerciseTracker.getRepCount()}"
-            drawInfoBox(canvas, repCountText, yOffset, Color.parseColor("#80000000"))
-            yOffset += 100f + boxSpacing
+            // Draw simple rep counter for non-target mode
+            val repBox = RectF(
+                padding,
+                yOffset,
+                padding + rectWidth,
+                yOffset + boxHeight
+            )
+            canvas.drawRoundRect(repBox, cornerRadius, cornerRadius, infoBoxPaint)
+
+            titleTextPaint.textSize = 36f
+            canvas.drawText(
+                "REPS",
+                repBox.left + 16f,
+                repBox.centerY() - 16f,
+                titleTextPaint
+            )
+
+            textPaint.textSize = 48f
+            canvas.drawText(
+                "${exerciseTracker.getRepCount()}",
+                repBox.left + 16f,
+                repBox.centerY() + 24f,
+                textPaint
+            )
+
+            yOffset += boxHeight + margin
         }
 
         // Draw status and form feedback
         val statusText = exerciseTracker.repStatus
-        val statusColor = when {
-            statusText.contains("Good") -> Color.parseColor("#80228B22")
-            statusText.contains("Start") -> Color.parseColor("#80FFD700")
-            else -> Color.parseColor("#80000000")
-        }
-        drawInfoBox(canvas, statusText, yOffset, statusColor)
-        yOffset += 100f + boxSpacing
-
-        val feedbackText = exerciseTracker.formFeedback
         val feedbackColor = when {
-            feedbackText.contains("Good") -> Color.parseColor("#80228B22")
-            else -> Color.parseColor("#80FF4444")
+            statusText.contains("Good") -> Color.parseColor("#4CAF50") // Green
+            statusText.contains("Start") -> Color.parseColor("#FFC107") // Yellow
+            else -> Color.parseColor("#2196F3") // Blue
         }
-        drawInfoBox(canvas, feedbackText, yOffset, feedbackColor)
-    }
 
-
-    private fun drawInfoBox(canvas: Canvas, text: String, yOffset: Float, backgroundColor: Int) {
-        val padding = 20f
-        textPaint.textSize = 60f
-        val bounds = Rect()
-        textPaint.getTextBounds(text, 0, text.length, bounds)
-
-        val boxRect = RectF(
+        val statusBox = RectF(
             padding,
             yOffset,
-            padding + bounds.width() + 60f,
-            yOffset + bounds.height() + 40f
+            padding + rectWidth,
+            yOffset + boxHeight
+        )
+        infoBoxPaint.color = Color.parseColor("#AA000000")
+        canvas.drawRoundRect(statusBox, cornerRadius, cornerRadius, infoBoxPaint)
+
+        // Draw colored status indicator
+        val indicatorWidth = 8f
+        val indicatorRect = RectF(
+            statusBox.left,
+            statusBox.top,
+            statusBox.left + indicatorWidth,
+            statusBox.bottom
+        )
+        val indicatorPaint = Paint().apply {
+            color = feedbackColor
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(indicatorRect, cornerRadius/2, cornerRadius/2, indicatorPaint)
+
+        titleTextPaint.textSize = 36f
+        canvas.drawText(
+            "STATUS",
+            statusBox.left + indicatorWidth + 12f,
+            statusBox.centerY() - 16f,
+            titleTextPaint
         )
 
-        repBoxPaint.color = backgroundColor
-        canvas.drawRoundRect(boxRect, cornerRadius, cornerRadius, repBoxPaint)
+        // Adjust status text to be more concise if needed
+        val displayStatus = if (statusText.length > 20) {
+            statusText.substring(0, 20) + "..."
+        } else {
+            statusText
+        }
+
+        textPaint.textSize = 42f
         canvas.drawText(
-            text,
-            boxRect.left + 30f,
-            boxRect.bottom - 20f,
-            textPaint.apply { color = Color.WHITE }
+            displayStatus,
+            statusBox.left + indicatorWidth + 12f,
+            statusBox.centerY() + 24f,
+            textPaint
         )
+
+        yOffset += boxHeight + margin
+
+        // Draw form feedback
+        val feedbackText = exerciseTracker.formFeedback
+        val formFeedbackColor = when {
+            feedbackText.contains("Good") -> Color.parseColor("#4CAF50") // Green
+            else -> Color.parseColor("#F44336") // Red
+        }
+
+        if (feedbackText.isNotEmpty() && !feedbackText.contains("Good")) {
+            val feedbackBox = RectF(
+                padding,
+                yOffset,
+                padding + rectWidth,
+                yOffset + boxHeight
+            )
+            canvas.drawRoundRect(feedbackBox, cornerRadius, cornerRadius, infoBoxPaint)
+
+            // Draw colored indicator
+            val fbIndicatorRect = RectF(
+                feedbackBox.left,
+                feedbackBox.top,
+                feedbackBox.left + indicatorWidth,
+                feedbackBox.bottom
+            )
+            indicatorPaint.color = formFeedbackColor
+            canvas.drawRoundRect(fbIndicatorRect, cornerRadius/2, cornerRadius/2, indicatorPaint)
+
+            titleTextPaint.textSize = 36f
+            canvas.drawText(
+                "FORM",
+                feedbackBox.left + indicatorWidth + 12f,
+                feedbackBox.centerY() - 16f,
+                titleTextPaint
+            )
+
+            // Adjust feedback text to be more concise if needed
+            val displayFeedback = if (feedbackText.length > 20) {
+                feedbackText.substring(0, 20) + "..."
+            } else {
+                feedbackText
+            }
+
+            textPaint.textSize = 42f
+            canvas.drawText(
+                displayFeedback,
+                feedbackBox.left + indicatorWidth + 12f,
+                feedbackBox.centerY() + 24f,
+                textPaint
+            )
+        }
     }
 
     fun setResults(
@@ -295,40 +525,38 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         imageHeight: Int,
         imageWidth: Int,
         runningMode: RunningMode = RunningMode.IMAGE
-    )
-    {
-        Log.d("OverlayView", "setResults called - isTargetMode: ${viewModel}isTargetMode, reps: ${viewModel}currentReps/${viewModel}targetReps")
+    ) {
         results = poseLandmarkerResults
         this.imageHeight = imageHeight
         this.imageWidth = imageWidth
         scaleFactor = when (runningMode) {
             RunningMode.IMAGE, RunningMode.VIDEO ->
                 minOf(width * 1f / imageWidth, height * 1f / imageHeight)
-
             RunningMode.LIVE_STREAM ->
                 maxOf(width * 1f / imageWidth, height * 1f / imageHeight)
         }
-        Log.d("OverlayView", "setResults completed - state preserved? isTargetMode: ${viewModel}isTargetMode")
-
         invalidate()
     }
-
-
 
     fun setExerciseType(type: ExerciseType) {
         Log.d("OverlayView", "Setting exercise type: ${type.name}")
         exerciseTracker.resetExercise()
-        exerciseTracker.setExerciseType(type) // Add this line to use the type parameter
-        // Reset target mode when exercise type changes
+        exerciseTracker.setExerciseType(type)
 
+        // Reset progress and animation values
+        progressValue = 0f
+        targetProgressValue = 0f
+        lastRepCount = 0
         restTimer?.cancel()
         invalidate()
     }
 
-    // Example usage of setTargetModeParams in a workout session
     fun startWorkoutSession(reps: Int, sets: Int, restTime: Int) {
         setTargetModeParams(reps, sets, restTime)
-        // Additional workout session initialization if needed
+        // Reset progress and animation values
+        progressValue = 0f
+        targetProgressValue = 0f
+        lastRepCount = 0
     }
 
     fun clear() {
@@ -340,7 +568,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        restTimer?.cancel() // Clean up timer when view is destroyed
+        restTimer?.cancel()
     }
 
     companion object {

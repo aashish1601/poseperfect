@@ -33,6 +33,7 @@ class PoseAngleCalculator {
                 landmarks[indices.third]
             )
         }
+
         fun areElbowsInline(landmarks: List<NormalizedLandmark>): Boolean {
             val leftShoulder = landmarks[11]
             val rightShoulder = landmarks[12]
