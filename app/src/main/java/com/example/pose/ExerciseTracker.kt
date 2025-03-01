@@ -1,10 +1,13 @@
 package com.example.pose
 
+import android.content.Context
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import java.util.Locale
 import kotlin.math.abs
 
-class ExerciseTracker {
+class ExerciseTracker(private val context: Context) {
     private var repCount = 0
     private var isUpPosition = false
     private var isDownPosition = false
@@ -18,10 +21,20 @@ class ExerciseTracker {
 
     // Add these variables for feedback delay
     private var lastFeedbackTime = 0L
-    private val feedbackDelayMs = 4000L  // 5 seconds delay
+    private val feedbackDelayMs = 4000L  // 4 seconds delay
+
+    // Add these variables for TTS
+    private var lastSpokenFeedback = ""
+    private var textToSpeech: TextToSpeech? = null
+    private var isTtsReady = false
 
     private var rightJoint = JointAngle(0.0, "", false)
     private var leftJoint = JointAngle(0.0, "", false)
+
+    // Initialize Text-to-Speech
+    init {
+        initializeTextToSpeech()
+    }
 
     // Add this data class to make the code compile
     data class JointAngle(
@@ -66,12 +79,39 @@ class ExerciseTracker {
 
     fun getRepCount() = repCount
 
+    // Initialize Text-to-Speech
+    private fun initializeTextToSpeech() {
+        textToSpeech = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = textToSpeech?.setLanguage(Locale.US)
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("ExerciseTracker", "Language not supported for TTS")
+                } else {
+                    isTtsReady = true
+                    Log.d("ExerciseTracker", "TTS initialized successfully")
+                }
+            } else {
+                Log.e("ExerciseTracker", "TTS initialization failed with status: $status")
+            }
+        }
+    }
+
+    // Speak text using TTS
+    private fun speakFeedback(text: String) {
+        if (isTtsReady && text.isNotEmpty() && text != lastSpokenFeedback) {
+            textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "feedback_id")
+            lastSpokenFeedback = text
+            Log.d("ExerciseTracker", "Speaking feedback: $text")
+        }
+    }
+
     // Add this method to reset rep count
     fun resetRepCount() {
         repCount = 0
         repStatus = "Start exercise"
         formFeedback = ""
         lastFeedbackTime = 0L
+        speakFeedback("Rep count reset")
     }
 
     @Synchronized
@@ -86,6 +126,7 @@ class ExerciseTracker {
         rightJoint = JointAngle(0.0, "", false)
         leftJoint = JointAngle(0.0, "", false)
         lastFeedbackTime = 0L
+        speakFeedback("Exercise reset")
     }
 
     @Synchronized
@@ -93,6 +134,7 @@ class ExerciseTracker {
         Log.d("ExerciseTracker", "Setting exercise type: ${type.name}")
         currentExerciseType = type
         resetExercise()
+        speakFeedback("Exercise set to ${type.name.replace("_", " ").toLowerCase()}")
     }
 
     @Synchronized
@@ -246,6 +288,8 @@ class ExerciseTracker {
             }
         }
 
+        val prevRepStatus = repStatus
+
         if (!isUpPosition && !isDownPosition) {
             // Check if we're in the down position to start a rep
             if (isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
@@ -253,6 +297,11 @@ class ExerciseTracker {
                 repStatus = getExerciseStartPrompt(currentExerciseType)
                 lastGoodForm = effectiveGoodForm
                 Log.d("ExerciseTracker", "DOWN position detected with form quality: $lastGoodForm")
+
+                // Speak the exercise start prompt
+                if (repStatus != prevRepStatus) {
+                    speakFeedback(repStatus)
+                }
             }
         }
         else if (isDownPosition && !isUpPosition) {
@@ -268,6 +317,11 @@ class ExerciseTracker {
                     repStatus = "Rep counted, but check form (${repCount})"
                 }
                 Log.d("ExerciseTracker", "UP position detected, counting rep: $repCount with form: $effectiveGoodForm")
+
+                // Speak the rep status
+                if (repStatus != prevRepStatus) {
+                    speakFeedback(repStatus)
+                }
             }
         }
         else if (isUpPosition && isDownPosition) {
@@ -278,6 +332,11 @@ class ExerciseTracker {
                 isDownPosition = false
                 repStatus = "Return to starting position"
                 Log.d("ExerciseTracker", "Returning to neutral position")
+
+                // Speak the reset instruction
+                if (repStatus != prevRepStatus) {
+                    speakFeedback(repStatus)
+                }
             }
         }
         else if (isUpPosition && !isDownPosition) {
@@ -288,6 +347,11 @@ class ExerciseTracker {
                 repStatus = getExerciseStartPrompt(currentExerciseType)
                 lastGoodForm = effectiveGoodForm
                 Log.d("ExerciseTracker", "Back to DOWN position, preparing for next rep")
+
+                // Speak the exercise start prompt
+                if (repStatus != prevRepStatus) {
+                    speakFeedback(repStatus)
+                }
             }
         }
     }
@@ -360,6 +424,9 @@ class ExerciseTracker {
             formFeedback = newFeedback
             lastFeedbackTime = currentTime
             Log.d("ExerciseTracker", "Updated feedback: $formFeedback")
+
+            // Speak the new feedback
+            speakFeedback(newFeedback)
         }
     }
 
@@ -367,7 +434,7 @@ class ExerciseTracker {
         // More detailed feedback
         return when {
             !rightJoint.isCorrect || !leftJoint.isCorrect -> {
-                "Asymmetry detected: (${rightJoint.jointName}: ${rightJoint.angle.toInt()}°, ${leftJoint.jointName}: ${leftJoint.angle.toInt()}°)"
+                "Asymmetry detected: Fix your form"
             }
             !isGoodForm(landmarks, exerciseType) -> {
                 when (exerciseType) {
@@ -381,6 +448,16 @@ class ExerciseTracker {
             else -> {
                 "Good form!"
             }
+        }
+    }
+
+    // Clean up resources
+    fun shutdown() {
+        if (textToSpeech != null) {
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
+            textToSpeech = null
+            isTtsReady = false
         }
     }
 }

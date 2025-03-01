@@ -19,7 +19,9 @@ import java.util.Date
 class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener {
     private lateinit var binding: ActivityMainBinding
     private val workoutViewModel: WorkoutViewModel by viewModels()
-    val viewModel: MainViewModel by viewModels()
+    val viewModel: MainViewModel by viewModels {
+        MainViewModelFactory(applicationContext) // or use requireContext() in a Fragment
+    }
 
 
     // Add enum for rep modes

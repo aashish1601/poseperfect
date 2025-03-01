@@ -206,12 +206,7 @@
                             android:layout_marginTop="16dp"
                             android:background="#F5F5F5">
 
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:scaleType="fitXY"
-                                android:src="@drawable/exercise_progress_chart"
-                                android:contentDescription="Exercise progress bar chart" />
+
                         </FrameLayout>
 
                         <TextView

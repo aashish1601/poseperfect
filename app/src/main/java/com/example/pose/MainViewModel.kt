@@ -1,10 +1,13 @@
 // MainViewModel.kt
 package com.example.pose
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 
-class MainViewModel : ViewModel() {
+
+class MainViewModel(private val appContext: Context) : ViewModel() {
     // Existing ML model configuration
     private var _model = PoseLandmarkerHelper.MODEL_POSE_LANDMARKER_FULL
     private var _delegate: Int = PoseLandmarkerHelper.DELEGATE_CPU
@@ -13,7 +16,7 @@ class MainViewModel : ViewModel() {
     private var _minPosePresenceConfidence: Float = PoseLandmarkerHelper.DEFAULT_POSE_PRESENCE_CONFIDENCE
 
     // Exercise tracker state
-    val exerciseTracker = ExerciseTracker()
+    val exerciseTracker = ExerciseTracker(appContext)
 
     // Target mode workout state
     var isTargetMode = false
@@ -67,5 +70,15 @@ class MainViewModel : ViewModel() {
         currentSet = 1
         exerciseTracker.resetRepCount()
         isTargetMode = true
+    }
+}
+
+class MainViewModelFactory(private val appContext: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MainViewModel(appContext) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

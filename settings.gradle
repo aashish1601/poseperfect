@@ -11,7 +11,7 @@ pluginManagement {
         gradlePluginPortal()
         maven { url 'https://google.github.io/mediapipe/solutions/maven' }
         maven { url 'https://maven.google.com' }
-        maven { url 'https://jitpack.io' }
+
     }
 }
 dependencyResolutionManagement {
@@ -19,6 +19,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 

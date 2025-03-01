@@ -6,8 +6,14 @@ import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.pose.databinding.ActivityProgressDetailsBinding
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class ProgressDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityProgressDetailsBinding
@@ -26,6 +32,7 @@ class ProgressDetailsActivity : AppCompatActivity() {
         }
 
         setupUI()
+        setupChart()
         observeViewModel()
 
         binding.backButton.setOnClickListener {
@@ -49,13 +56,110 @@ class ProgressDetailsActivity : AppCompatActivity() {
         binding.exerciseNameText.text = "$formattedName Progress"
     }
 
+    private fun setupChart() {
+        val chart = com.github.mikephil.charting.charts.LineChart(this)
+        binding.chartContainer.addView(chart)
+
+        // Configure chart appearance
+        chart.description.isEnabled = false
+        chart.setTouchEnabled(true)
+        chart.isDragEnabled = true
+        chart.setScaleEnabled(true)
+        chart.setPinchZoom(true)
+        chart.setDrawGridBackground(false)
+
+        // Configure axis
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+
+        // Remove right axis
+        chart.axisRight.isEnabled = false
+
+        // Add legend
+        chart.legend.isEnabled = true
+
+        // Create empty data
+        val lineDataSet = LineDataSet(ArrayList(), "Reps")
+        lineDataSet.color = Color.BLUE
+        lineDataSet.setCircleColor(Color.BLUE)
+        lineDataSet.lineWidth = 2f
+        lineDataSet.circleRadius = 4f
+        lineDataSet.setDrawCircleHole(false)
+        lineDataSet.valueTextSize = 10f
+        lineDataSet.setDrawFilled(true)
+        lineDataSet.fillColor = Color.parseColor("#4D0000FF") // Semi-transparent blue
+
+        val lineData = LineData(lineDataSet)
+        chart.data = lineData
+        chart.invalidate()
+
+        // Save chart to be updated later
+        chart.tag = "progressChart"
+    }
+
     private fun observeViewModel() {
         viewModel.getSessionsByExercise(exerciseType).observe(this) { sessions ->
             if (sessions.isNotEmpty()) {
                 updateSummaryData(sessions)
                 updateRecentWorkouts(sessions)
+                updateProgressChart(sessions)
             }
         }
+    }
+
+    private fun updateProgressChart(sessions: List<WorkoutSession>) {
+        // Get the chart
+        val chart = binding.chartContainer.findViewWithTag<com.github.mikephil.charting.charts.LineChart>("progressChart") ?: return
+
+        // Sort sessions by date (oldest to newest)
+        val sortedSessions = sessions.sortedBy { it.date }
+
+        // Create entries for the chart
+        val entries = ArrayList<Entry>()
+        val dateLabels = ArrayList<String>()
+        val dateFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
+
+        // Add entries for each session
+        sortedSessions.forEachIndexed { index, session ->
+            entries.add(Entry(index.toFloat(), session.totalReps.toFloat()))
+            dateLabels.add(dateFormat.format(session.date))
+        }
+
+        // Update chart data
+        val dataSet = LineDataSet(entries, "Average Reps")
+        dataSet.color = Color.BLUE
+        dataSet.setCircleColor(Color.BLUE)
+        dataSet.lineWidth = 2f
+        dataSet.circleRadius = 4f
+        dataSet.setDrawCircleHole(false)
+        dataSet.valueTextSize = 10f
+        dataSet.setDrawFilled(true)
+        dataSet.fillColor = Color.parseColor("#4D0000FF") // Semi-transparent blue
+
+        // Set X-axis labels to show dates
+        chart.xAxis.valueFormatter = IndexAxisValueFormatter(dateLabels)
+
+        // Update chart data and refresh
+        val lineData = LineData(dataSet)
+        chart.data = lineData
+
+        // Add chart animation
+        chart.animateX(1000)
+
+        // If we have many data points, ensure the chart can be scrolled
+        if (entries.size > 7) {
+            chart.setVisibleXRangeMaximum(7f)
+            chart.moveViewToX(entries.size.toFloat() - 7)
+        }
+
+        // Refresh chart
+        chart.invalidate()
     }
 
     private fun updateSummaryData(sessions: List<WorkoutSession>) {
@@ -69,7 +173,7 @@ class ProgressDetailsActivity : AppCompatActivity() {
     }
 
     private fun updateRecentWorkouts(sessions: List<WorkoutSession>) {
-        // Clear existing workout items (except the sample ones that are in XML)
+        // Clear existing workout items
         binding.recentWorkoutsContainer.removeAllViews()
 
         // Get the 3 most recent workouts
