@@ -17,6 +17,7 @@ class ExerciseSelectionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityExerciseSelectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         window.statusBarColor = ContextCompat.getColor(this, statuts_bar_colour)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or
@@ -38,24 +39,6 @@ class ExerciseSelectionActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
-
-        // Add click listeners for other exercise cards if they exist
-        // Example for pushup card
-        /*
-        binding.pushupCard.setOnClickListener {
-            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
-                putExtra("EXERCISE_TYPE", "PUSHUP")
-            }
-            startActivity(intent)
-        }
-
-        // Example for bicep curl card
-        binding.bicepCurlCard.setOnClickListener {
-            val intent = Intent(this, ExerciseConfigActivity::class.java).apply {
-                putExtra("EXERCISE_TYPE", "BICEP_CURL")
-            }
-            startActivity(intent)
-        }
-        */
     }
+
 }

@@ -147,10 +147,15 @@ class ExerciseConfigActivity : AppCompatActivity() {
             }
         })
 
-
-        // Setup start button
         binding.startButton.setOnClickListener {
-            startExercise()
+            val intent = Intent(this, MainActivity::class.java).apply {
+                putExtra("EXERCISE_TYPE", exerciseType) // Ensure exerciseType is passed
+                putExtra("REP_MODE", selectedRepMode.name)
+                putExtra("TARGET_REPS", binding.targetRepsInput.text.toString().toIntOrNull() ?: 0)
+                putExtra("TARGET_SETS", binding.setsNumberPicker.value)
+                putExtra("REST_TIME", binding.restTimeSlider.value.toInt())
+            }
+            startActivity(intent)
         }
         binding.showprogressbutton.setOnClickListener {
             val intent = Intent(this, ProgressSelectionActivity::class.java)

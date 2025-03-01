@@ -1,6 +1,7 @@
 // MainViewModel.kt
 package com.example.pose
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 
 class MainViewModel : ViewModel() {
@@ -11,13 +12,20 @@ class MainViewModel : ViewModel() {
     private var _minPoseTrackingConfidence: Float = PoseLandmarkerHelper.DEFAULT_POSE_TRACKING_CONFIDENCE
     private var _minPosePresenceConfidence: Float = PoseLandmarkerHelper.DEFAULT_POSE_PRESENCE_CONFIDENCE
 
+    // Exercise tracker state
+    val exerciseTracker = ExerciseTracker()
+
     // Target mode workout state
     var isTargetMode = false
     var targetReps = 0
     var targetSets = 0
     var currentSet = 1
     var restTimeSeconds = 0
-    var currentReps = 0
+    var currentReps: Int
+        get() = exerciseTracker.getRepCount()
+        set(value) {
+            exerciseTracker.resetRepCount()
+        }
 
     // Getters for ML configuration
     val currentDelegate: Int get() = _delegate
@@ -33,6 +41,13 @@ class MainViewModel : ViewModel() {
     fun setMinPosePresenceConfidence(confidence: Float) { _minPosePresenceConfidence = confidence }
     fun setModel(model: Int) { _model = model }
 
+    fun setExerciseType(type: ExerciseType) {
+        // Reset the rep counter whenever the exercise type changes
+        exerciseTracker.resetExercise()
+        // Then set the new type
+        exerciseTracker.setExerciseType(type)
+        Log.d("MainViewModel", "Exercise type changed to: ${type.name}")
+    }
     // Workout state management
     fun resetWorkoutState() {
         isTargetMode = false
@@ -40,7 +55,9 @@ class MainViewModel : ViewModel() {
         targetSets = 0
         currentSet = 1
         restTimeSeconds = 0
-        currentReps = 0
+        exerciseTracker.resetExercise()
+        // Log to verify reset
+        Log.d("MainViewModel", "Workout state reset")
     }
 
     fun startWorkoutSession(reps: Int, sets: Int, rest: Int) {
@@ -48,7 +65,7 @@ class MainViewModel : ViewModel() {
         targetSets = sets.coerceAtLeast(1)
         restTimeSeconds = rest.coerceAtLeast(0)
         currentSet = 1
-        currentReps = 0
+        exerciseTracker.resetRepCount()
         isTargetMode = true
     }
 }

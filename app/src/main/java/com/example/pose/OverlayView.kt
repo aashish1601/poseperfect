@@ -32,7 +32,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
     private val points = FloatArray(33 * 2)
-    private val exerciseTracker = ExerciseTracker()
     private val cornerRadius = 24f
     private val circleRadius = 80f
     private val circlePadding = 40f
@@ -59,7 +58,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         this.workoutCompletionListener = listener
     }
 
-    fun getCurrentExerciseType(): String = exerciseTracker.currentExerciseType.name
+    fun getCurrentExerciseType(): String = viewModel?.exerciseTracker?.currentExerciseType?.name ?: "NONE"
     fun getCurrentReps(): Int = viewModel?.currentReps ?: 0
     fun getCurrentSet(): Int = viewModel?.currentSet ?: 1
     fun getTargetReps(): Int = viewModel?.targetReps ?: 0
@@ -92,9 +91,8 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                 this.restTimeSeconds = restTimeSeconds.coerceAtLeast(0)
                 isTargetMode = true
                 currentSet = 1
-                currentReps = 0
+                exerciseTracker.resetRepCount() // Use view model's exercise tracker
             }
-            exerciseTracker.resetRepCount()
             post {
                 invalidate()
                 requestLayout()
@@ -172,17 +170,17 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                     drawLandmarkPoints(canvas)
 
                     if (!isInRestPeriod) {
-                        val detectedExercise = exerciseTracker.detectExerciseType(landmarks)
-                        exerciseTracker.processExercise(landmarks, detectedExercise)
-                        vm.currentReps = exerciseTracker.getRepCount()
+                        // Process the exercise using the ViewModel's exercise tracker
+                        vm.exerciseTracker.processExercise(landmarks)
 
-                        // Animate progress when rep count changes
-                        if (lastRepCount != vm.currentReps) {
-                            animateProgress(vm.currentReps.toFloat() / vm.targetReps.toFloat())
-                            lastRepCount = vm.currentReps
+                        // Check if rep count has changed
+                        val currentReps = vm.currentReps
+                        if (lastRepCount != currentReps) {
+                            animateProgress(currentReps.toFloat() / vm.targetReps.toFloat())
+                            lastRepCount = currentReps
                         }
 
-                        if (vm.isTargetMode && vm.currentReps >= vm.targetReps) {
+                        if (vm.isTargetMode && currentReps >= vm.targetReps) {
                             if (vm.currentSet < vm.targetSets) {
                                 startRestPeriod(vm)
                             } else {
@@ -222,8 +220,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
             override fun onFinish() {
                 isInRestPeriod = false
                 viewModel.currentSet++
-                viewModel.currentReps = 0
-                exerciseTracker.resetRepCount()
+                viewModel.exerciseTracker.resetRepCount() // Use the ViewModel's tracker
                 progressValue = 0f
                 targetProgressValue = 0f
                 lastRepCount = 0
@@ -266,7 +263,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         var yOffset = padding
         val rectWidth = 400f
 
-
         // Draw circular progress for rep counter
         if (viewModel.isTargetMode) {
             val circleX = padding + circleRadius + circlePadding
@@ -298,7 +294,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
             )
 
             // Draw rep text
-            val repText = "${viewModel.currentReps}"
+            val repText = "${viewModel.exerciseTracker.getRepCount()}"
             val targetText = "/${viewModel.targetReps}"
 
             textPaint.textSize = 64f
@@ -404,7 +400,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
             textPaint.textSize = 48f
             canvas.drawText(
-                "${exerciseTracker.getRepCount()}",
+                "${viewModel.exerciseTracker.getRepCount()}",
                 repBox.left + 16f,
                 repBox.centerY() + 24f,
                 textPaint
@@ -414,7 +410,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         }
 
         // Draw status and form feedback
-        val statusText = exerciseTracker.repStatus
+        val statusText = viewModel.exerciseTracker.repStatus
         val feedbackColor = when {
             statusText.contains("Good") -> Color.parseColor("#4CAF50") // Green
             statusText.contains("Start") -> Color.parseColor("#FFC107") // Yellow
@@ -470,7 +466,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         yOffset += boxHeight + margin
 
         // Draw form feedback
-        val feedbackText = exerciseTracker.formFeedback
+        val feedbackText = viewModel.exerciseTracker.formFeedback
         val formFeedbackColor = when {
             feedbackText.contains("Good") -> Color.parseColor("#4CAF50") // Green
             else -> Color.parseColor("#F44336") // Red
@@ -540,8 +536,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
     fun setExerciseType(type: ExerciseType) {
         Log.d("OverlayView", "Setting exercise type: ${type.name}")
-        exerciseTracker.resetExercise()
-        exerciseTracker.setExerciseType(type)
+        viewModel?.setExerciseType(type) // Use ViewModel to set exercise type
 
         // Reset progress and animation values
         progressValue = 0f
@@ -552,7 +547,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     }
 
     fun startWorkoutSession(reps: Int, sets: Int, restTime: Int) {
-        setTargetModeParams(reps, sets, restTime)
+        viewModel?.startWorkoutSession(reps, sets, restTime) // Use ViewModel's method
         // Reset progress and animation values
         progressValue = 0f
         targetProgressValue = 0f

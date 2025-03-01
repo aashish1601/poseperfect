@@ -25,6 +25,7 @@ class PoseAngleCalculator {
         private const val MAX_ELBOW_FLARE_ANGLE = 15.0 // Maximum allowed angle deviation for elbow alignment
         private const val SYMMETRY_THRESHOLD = 10.0
 
+
         fun calculateShoulderAngle(landmarks: List<NormalizedLandmark>, isRight: Boolean): Double {
             val indices = if (isRight) RIGHT_SHOULDER_PRESS_INDICES else LEFT_SHOULDER_PRESS_INDICES
             return calculateAngle(
@@ -39,7 +40,6 @@ class PoseAngleCalculator {
             val rightShoulder = landmarks[12]
             val leftElbow = landmarks[13]
             val rightElbow = landmarks[14]
-
             // Calculate the angle between shoulders line and each elbow
             val shoulderLineAngle = Math.toDegrees(
                 atan2(
@@ -145,35 +145,7 @@ class PoseAngleCalculator {
             )
         }
 
-        fun detectExerciseType(landmarks: List<NormalizedLandmark>, selectedExerciseType: String? = null): ExerciseType {
-            // If an exercise type was selected in the UI, use it
-            if (selectedExerciseType != null) {
-                return when (selectedExerciseType) {
-                    "SHOULDER_PRESS" -> ExerciseType.SHOULDER_PRESS
-                    "SQUAT" -> ExerciseType.SQUAT
-                    "PUSHUP" -> ExerciseType.PUSHUP
-                    "BICEP_CURL" -> ExerciseType.BICEP_CURL
-                    else -> ExerciseType.NONE
-                }
-            }
 
-            // Otherwise fall back to automatic detection
-            val rightKneeAngle = calculateKneeAngle(landmarks, true)
-            val rightElbowAngle = calculateElbowAngle(landmarks, true)
-            val rightShoulderAngle = calculateShoulderAngle(landmarks, true)
-
-            return when {
-                rightKneeAngle in SQUAT_DETECTION_KNEE_RANGE && isBodyVertical(landmarks) ->
-                    ExerciseType.SQUAT
-                rightElbowAngle in PUSHUP_DETECTION_ELBOW_RANGE && isBodyHorizontal(landmarks) ->
-                    ExerciseType.PUSHUP
-                rightShoulderAngle in SHOULDER_PRESS_DETECTION_RANGE && isBodyVertical(landmarks) ->
-                    ExerciseType.SHOULDER_PRESS
-                rightElbowAngle < 90.0 && isBodyVertical(landmarks) ->
-                    ExerciseType.BICEP_CURL
-                else -> ExerciseType.NONE
-            }
-        }
 
         fun isBodyVertical(landmarks: List<NormalizedLandmark>): Boolean {
             val shoulder = landmarks[11]

@@ -26,25 +26,34 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
     enum class RepMode { TARGET, INFINITE,NO_COUNTING,COUNT_UP }
 
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setupThemeAndStatusBar()
-
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
 
         setupNavigation()
         setupWorkoutTracking()
         setupToolbar()
         handleIntentExtras()
 
+        // Restore exercise type if savedInstanceState is not null
+        if (savedInstanceState != null) {
+            val exerciseType = savedInstanceState.getString("EXERCISE_TYPE", ExerciseType.NONE.name)
+            viewModel.exerciseTracker.setExerciseType(ExerciseType.valueOf(exerciseType))
+        } else {
+            handleIntentExtras() // Handle initial intent extras
+        }
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("EXERCISE_TYPE", viewModel.exerciseTracker.currentExerciseType.name)
+    }
     private fun setupThemeAndStatusBar() {
         setTheme(R.style.Theme_Pose)
         window.statusBarColor = ContextCompat.getColor(this, R.color.statuts_bar_colour)
@@ -90,19 +99,23 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
         binding.overlayView.setWorkoutCompletionListener(this)
         binding.overlayView.setViewModel(viewModel) // Add this line
     }
-
-
-
     private fun handleIntentExtras() {
         intent?.extras?.let { extras ->
             val exerciseType = extras.getString("EXERCISE_TYPE", ExerciseType.NONE.name)
+            Log.d("MainActivity", "Received exercise type: $exerciseType")
+
             val repMode = extras.getString("REP_MODE", RepMode.INFINITE.name)
             val targetReps = extras.getInt("TARGET_REPS", 0)
             val targetSets = extras.getInt("TARGET_SETS", 0)
             val restTime = extras.getInt("REST_TIME", 0)
 
+            if (exerciseType == ExerciseType.NONE.name) {
+                Log.e("MainActivity", "Exercise type is NONE. Check ExerciseConfigActivity.")
+            }
+
             binding.overlayView.post {
-                binding.overlayView.setExerciseType(ExerciseType.valueOf(exerciseType))
+                viewModel.exerciseTracker.setExerciseType(ExerciseType.valueOf(exerciseType))
+                Log.d("MainActivity", "Exercise type set in OverlayView: $exerciseType")
                 when (RepMode.valueOf(repMode)) {
                     RepMode.TARGET -> {
                         if (targetReps > 0 && targetSets > 0) {
@@ -112,15 +125,12 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
                     }
                     RepMode.COUNT_UP -> {
                         viewModel.isTargetMode = false
-                        // No need to set target parameters
                     }
                     RepMode.NO_COUNTING -> {
                         viewModel.isTargetMode = false
-                        // Disable rep counting in the overlay view
                     }
                     RepMode.INFINITE -> {
                         viewModel.isTargetMode = false
-                        // Original behavior
                     }
                 }
             }
