@@ -2,17 +2,28 @@ package com.example.pose
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import java.util.Locale
 import kotlin.math.abs
-
 class ExerciseTracker(private val context: Context) {
     private var repCount = 0
     private var isUpPosition = false
     private var isDownPosition = false
     private var lastGoodForm = false
     var currentExerciseType: ExerciseType = ExerciseType.NONE
+
+    // Define rep state to make the sequence clear and unambiguous
+    private enum class RepState {
+        NEUTRAL,      // Starting neutral position
+        DOWN_POSITION,  // In down position (start of rep)
+        UP_POSITION,    // In up position (rep completion)
+        RETURNING
+    }
+
+    // Current state of the rep cycle
+    private var repState = RepState.NEUTRAL
 
     var repStatus = "Start exercise"
         private set
@@ -21,12 +32,17 @@ class ExerciseTracker(private val context: Context) {
 
     // Add these variables for feedback delay
     private var lastFeedbackTime = 0L
-    private val feedbackDelayMs = 4000L  // 4 seconds delay
+    private val feedbackDelayMs = 6000L  // 6 seconds delay
 
     // Add these variables for TTS
     private var lastSpokenFeedback = ""
     private var textToSpeech: TextToSpeech? = null
     private var isTtsReady = false
+
+    // Add a queue for TTS commands to prevent overlap
+    private val ttsQueue = mutableListOf<String>()
+    private var isSpeaking = false
+    private val ttsDelayBetweenUtterances = 1000L // 1 second delay between utterances
 
     private var rightJoint = JointAngle(0.0, "", false)
     private var leftJoint = JointAngle(0.0, "", false)
@@ -52,15 +68,15 @@ class ExerciseTracker(private val context: Context) {
 
     private val exerciseConfigs = mapOf(
         ExerciseType.SHOULDER_PRESS to ExerciseAngles(
-            upRange = 150.0..180.0,
+            upRange = 160.0..180.0,
             downRange = 70.0..100.0,
-            maxAsymmetry = 30.0,
+            maxAsymmetry = 25.0,
             jointName = "Shoulder"
         ),
         ExerciseType.SQUAT to ExerciseAngles(
-            upRange = 140.0..180.0,  // More lenient up range
-            downRange = 80.0..110.0,  // Slightly wider down range
-            maxAsymmetry = 20.0,     // More tolerant of asymmetry
+            upRange = 140.0..180.0,
+            downRange = 80.0..110.0,
+            maxAsymmetry = 20.0,
             jointName = "Hip"
         ),
         ExerciseType.BICEP_CURL to ExerciseAngles(
@@ -79,7 +95,7 @@ class ExerciseTracker(private val context: Context) {
 
     fun getRepCount() = repCount
 
-    // Initialize Text-to-Speech
+    // Initialize Text-to-Speech with utterance listener
     private fun initializeTextToSpeech() {
         textToSpeech = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -88,6 +104,33 @@ class ExerciseTracker(private val context: Context) {
                     Log.e("ExerciseTracker", "Language not supported for TTS")
                 } else {
                     isTtsReady = true
+
+                    // Add utterance progress listener to handle queue
+                    textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {
+                            isSpeaking = true
+                            Log.d("ExerciseTracker", "TTS started: $utteranceId")
+                        }
+
+                        override fun onDone(utteranceId: String?) {
+                            isSpeaking = false
+                            Log.d("ExerciseTracker", "TTS completed: $utteranceId")
+
+                            // Process next item in queue after a delay
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                processNextInTtsQueue()
+                            }, ttsDelayBetweenUtterances)
+                        }
+
+                        override fun onError(utteranceId: String?) {
+                            isSpeaking = false
+                            Log.e("ExerciseTracker", "TTS error: $utteranceId")
+
+                            // Process next item in queue
+                            processNextInTtsQueue()
+                        }
+                    })
+
                     Log.d("ExerciseTracker", "TTS initialized successfully")
                 }
             } else {
@@ -96,12 +139,46 @@ class ExerciseTracker(private val context: Context) {
         }
     }
 
-    // Speak text using TTS
+    // Add to TTS queue instead of speaking immediately
     private fun speakFeedback(text: String) {
-        if (isTtsReady && text.isNotEmpty() && text != lastSpokenFeedback) {
-            textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "feedback_id")
-            lastSpokenFeedback = text
-            Log.d("ExerciseTracker", "Speaking feedback: $text")
+        if (isTtsReady && text.isNotEmpty()) {
+            // Add to queue
+            synchronized(ttsQueue) {
+                // Check if this exact message is already in queue to avoid duplicates
+                if (!ttsQueue.contains(text)) {
+                    ttsQueue.add(text)
+                    Log.d("ExerciseTracker", "Added to TTS queue: $text, Queue size: ${ttsQueue.size}")
+
+                    // Start processing queue if not already speaking
+                    if (!isSpeaking) {
+                        processNextInTtsQueue()
+                    }
+                }
+            }
+        }
+    }
+
+    // Process next item in TTS queue
+    private fun processNextInTtsQueue() {
+        synchronized(ttsQueue) {
+            if (ttsQueue.isNotEmpty() && !isSpeaking) {
+                val textToSpeak = ttsQueue.removeAt(0)
+                Log.d("ExerciseTracker", "Speaking from queue: $textToSpeak, Remaining: ${ttsQueue.size}")
+
+                val params = HashMap<String, String>()
+                params[TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID] = "feedback_${System.currentTimeMillis()}"
+
+                textToSpeech?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, params)
+                lastSpokenFeedback = textToSpeak
+            }
+        }
+    }
+
+    // Clear TTS queue when resetting
+    private fun clearTtsQueue() {
+        synchronized(ttsQueue) {
+            ttsQueue.clear()
+            Log.d("ExerciseTracker", "TTS queue cleared")
         }
     }
 
@@ -111,7 +188,8 @@ class ExerciseTracker(private val context: Context) {
         repStatus = "Start exercise"
         formFeedback = ""
         lastFeedbackTime = 0L
-        speakFeedback("Rep count reset")
+        clearTtsQueue()
+        speakFeedback("Rep count reset to zero")
     }
 
     @Synchronized
@@ -120,12 +198,14 @@ class ExerciseTracker(private val context: Context) {
         repCount = 0
         isUpPosition = false
         isDownPosition = false
+        repState = RepState.NEUTRAL
         lastGoodForm = false
         repStatus = "Start exercise"
         formFeedback = ""
         rightJoint = JointAngle(0.0, "", false)
         leftJoint = JointAngle(0.0, "", false)
         lastFeedbackTime = 0L
+        clearTtsQueue()
         speakFeedback("Exercise reset")
     }
 
@@ -134,7 +214,8 @@ class ExerciseTracker(private val context: Context) {
         Log.d("ExerciseTracker", "Setting exercise type: ${type.name}")
         currentExerciseType = type
         resetExercise()
-        speakFeedback("Exercise set to ${type.name.replace("_", " ").toLowerCase()}")
+        val exerciseName = type.name.replace("_", " ").toLowerCase(Locale.ROOT)
+        speakFeedback("Exercise set to $exerciseName")
     }
 
     @Synchronized
@@ -232,7 +313,7 @@ class ExerciseTracker(private val context: Context) {
         val config = exerciseConfigs[exerciseType]!!
         val isGoodForm = isGoodForm(landmarks, exerciseType)
         updateFormFeedback(landmarks, exerciseType)
-        trackRepProgress(rightJoint, leftJoint, config, isGoodForm)
+        trackRepProgressImproved(rightJoint, leftJoint, config, isGoodForm)
     }
 
     private fun isGoodForm(landmarks: List<NormalizedLandmark>, exerciseType: ExerciseType): Boolean {
@@ -248,25 +329,20 @@ class ExerciseTracker(private val context: Context) {
         return baseFormGood && jointsGood
     }
 
-    private fun trackRepProgress(
+    // Improved rep tracking logic using state machine approach
+    private fun trackRepProgressImproved(
         rightJoint: JointAngle,
         leftJoint: JointAngle,
         config: ExerciseAngles,
         isGoodForm: Boolean
     ) {
-        // Add more debug logging
-        Log.d("ExerciseTracker", "Current positions - Down: $isDownPosition, Up: $isUpPosition")
+        // Log current state and angles
+        Log.d("ExerciseTracker", "Current state: $repState")
         Log.d("ExerciseTracker", "Right angle: ${rightJoint.angle}, Left angle: ${leftJoint.angle}")
-        Log.d("ExerciseTracker", "Down range: ${config.downRange}, Up range: ${config.upRange}")
         Log.d("ExerciseTracker", "Form quality: $isGoodForm")
 
-        // Calculate the average angle for position checks
-        val avgAngle = (rightJoint.angle + leftJoint.angle) / 2
-        Log.d("ExerciseTracker", "Average angle: $avgAngle")
-
-        // For squats, be much more tolerant of asymmetry for sideways orientation
+        // Special handling for squats to be more tolerant of asymmetry
         val effectiveGoodForm = if (currentExerciseType == ExerciseType.SQUAT) {
-            // Allow up to 40° asymmetry for squats to accommodate sideways orientation
             val asymmetry = abs(rightJoint.angle - leftJoint.angle)
             val adjustedFormCheck = asymmetry <= 40.0 || isGoodForm
             Log.d("ExerciseTracker", "Adjusted squat form check: $adjustedFormCheck (asymmetry: $asymmetry)")
@@ -275,90 +351,105 @@ class ExerciseTracker(private val context: Context) {
             isGoodForm
         }
 
-        // Fix the issue where both isUpPosition and isDownPosition are true
-        if (isUpPosition && isDownPosition) {
-            // Reset the state if both are true to avoid getting stuck
-            if (!isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange)) {
-                isUpPosition = false
-                Log.d("ExerciseTracker", "Resetting conflicting UP position state")
-            }
-            if (!isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
-                isDownPosition = false
-                Log.d("ExerciseTracker", "Resetting conflicting DOWN position state")
-            }
-        }
-
         val prevRepStatus = repStatus
+        val prevRepState = repState
+        val prevRepCount = repCount  // Store previous rep count to check if it changed
 
-        if (!isUpPosition && !isDownPosition) {
-            // Check if we're in the down position to start a rep
-            if (isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
-                isDownPosition = true
-                repStatus = getExerciseStartPrompt(currentExerciseType)
-                lastGoodForm = effectiveGoodForm
-                Log.d("ExerciseTracker", "DOWN position detected with form quality: $lastGoodForm")
+        // State machine for rep counting
+        when (repState) {
+            RepState.NEUTRAL -> {
+                // Check if we've entered the down position (starting a rep)
+                if (isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
+                    repState = RepState.DOWN_POSITION
+                    repStatus = getExerciseStartPrompt(currentExerciseType)
+                    lastGoodForm = effectiveGoodForm
+                    Log.d("ExerciseTracker", "State change: NEUTRAL -> DOWN_POSITION")
 
-                // Speak the exercise start prompt
-                if (repStatus != prevRepStatus) {
-                    speakFeedback(repStatus)
+                    // Speak the exercise start prompt if status changed
+                    if (repStatus != prevRepStatus) {
+                        speakFeedback(repStatus)
+                    }
+                }
+            }
+
+            RepState.DOWN_POSITION -> {
+                // Check if we've moved to the up position (completing rep)
+                if (isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange)) {
+                    repState = RepState.UP_POSITION
+                    repCount++
+
+                    // Update status based on form
+                    if (effectiveGoodForm) {
+                        repStatus = "Good! (${repCount})"
+                    } else {
+                        repStatus = "(${repCount})"
+                    }
+
+                    Log.d("ExerciseTracker", "State change: DOWN_POSITION -> UP_POSITION, Rep count: $repCount")
+
+                    // Speak the rep count with appropriate message
+                    if (repCount != prevRepCount) {
+                        val repMessage = if (effectiveGoodForm) {
+                            "Good job! Rep ${repCount} completed."
+                        } else {
+                            " ${repCount}"
+                        }
+                        speakFeedback(repMessage)
+                    }
+                }
+            }
+
+            RepState.UP_POSITION -> {
+                // Check if we're returning to a neutral position
+                if (!isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange) &&
+                    !isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
+                    repState = RepState.RETURNING
+                    repStatus = ""
+                    Log.d("ExerciseTracker", "State change: UP_POSITION -> RETURNING")
+                }
+            }
+
+            RepState.RETURNING -> {
+                // Check if we've returned to the down position to start next rep
+                if (isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
+                    repState = RepState.DOWN_POSITION
+                    repStatus = getExerciseStartPrompt(currentExerciseType)
+                    lastGoodForm = effectiveGoodForm
+                    Log.d("ExerciseTracker", "State change: RETURNING -> DOWN_POSITION")
+
+                    // Speak the exercise start prompt if status changed
+                    if (repStatus != prevRepStatus) {
+                        speakFeedback(repStatus)
+                    }
+                }
+                // We can also go back to neutral if the person stands up completely
+                else if (!isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange) &&
+                    isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange)) {
+                    repState = RepState.NEUTRAL
+                    repStatus = "Ready for next rep"
+                    Log.d("ExerciseTracker", "State change: RETURNING -> NEUTRAL")
+
+                    // Speak the ready instruction if status changed
+                    if (repStatus != prevRepStatus) {
+                        speakFeedback("Ready for next rep")
+                    }
                 }
             }
         }
-        else if (isDownPosition && !isUpPosition) {
-            // Check if we've moved to the up position to complete a rep
-            if (isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange)) {
-                isUpPosition = true
 
-                // Count the rep regardless of form quality, but provide feedback
-                repCount++
-                if (effectiveGoodForm) {
-                    repStatus = "Good! (${repCount})"
-                } else {
-                    repStatus = "Rep counted, but check form (${repCount})"
-                }
-                Log.d("ExerciseTracker", "UP position detected, counting rep: $repCount with form: $effectiveGoodForm")
+        // Keep these traditional flags in sync with new state for backward compatibility
+        isUpPosition = (repState == RepState.UP_POSITION)
+        isDownPosition = (repState == RepState.DOWN_POSITION)
 
-                // Speak the rep status
-                if (repStatus != prevRepStatus) {
-                    speakFeedback(repStatus)
-                }
-            }
-        }
-        else if (isUpPosition && isDownPosition) {
-            // Check if we're out of both positions to reset for next rep
-            if (!isInUpPosition(rightJoint.angle, leftJoint.angle, config.upRange) &&
-                !isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
-                isUpPosition = false
-                isDownPosition = false
-                repStatus = "Return to starting position"
-                Log.d("ExerciseTracker", "Returning to neutral position")
-
-                // Speak the reset instruction
-                if (repStatus != prevRepStatus) {
-                    speakFeedback(repStatus)
-                }
-            }
-        }
-        else if (isUpPosition && !isDownPosition) {
-            // Check if we're going back to down position
-            if (isInDownPosition(rightJoint.angle, leftJoint.angle, config.downRange)) {
-                isDownPosition = true
-                isUpPosition = false
-                repStatus = getExerciseStartPrompt(currentExerciseType)
-                lastGoodForm = effectiveGoodForm
-                Log.d("ExerciseTracker", "Back to DOWN position, preparing for next rep")
-
-                // Speak the exercise start prompt
-                if (repStatus != prevRepStatus) {
-                    speakFeedback(repStatus)
-                }
-            }
+        // Log state change
+        if (prevRepState != repState) {
+            Log.d("ExerciseTracker", "Rep state changed from $prevRepState to $repState")
         }
     }
 
     private fun getExerciseStartPrompt(exerciseType: ExerciseType): String {
         return when (exerciseType) {
-            ExerciseType.SHOULDER_PRESS -> "Press up with control!"
+            ExerciseType.SHOULDER_PRESS -> "Press"
             ExerciseType.SQUAT -> "Stand up!"
             ExerciseType.BICEP_CURL -> "Curl up!"
             ExerciseType.PUSHUP -> "Push up!"
@@ -390,11 +481,11 @@ class ExerciseTracker(private val context: Context) {
     private fun isInUpPosition(rightAngle: Double, leftAngle: Double, range: ClosedRange<Double>): Boolean {
         // For squats specifically, be even more lenient with the up position
         if (currentExerciseType == ExerciseType.SQUAT) {
-            // Consider any angle above 130 degrees as "up enough" for squats
+            // Consider any angle above 145 degrees as "up enough" for squats
             // Also take the better angle for sideways orientation
             val betterAngle = maxOf(rightAngle, leftAngle)
             val result = betterAngle > 145.0
-            Log.d("ExerciseTracker", "Squat up position check: $betterAngle > 130.0 = $result")
+            Log.d("ExerciseTracker", "Squat up position check: $betterAngle > 145.0 = $result")
             return result
         } else {
             // Original code for other exercises
@@ -420,7 +511,7 @@ class ExerciseTracker(private val context: Context) {
         val newFeedback = generateFormFeedback(landmarks, exerciseType)
 
         // Only update if feedback actually changed
-        if (newFeedback != formFeedback) {
+        if (newFeedback != formFeedback && newFeedback.isNotEmpty()) {
             formFeedback = newFeedback
             lastFeedbackTime = currentTime
             Log.d("ExerciseTracker", "Updated feedback: $formFeedback")
@@ -434,7 +525,7 @@ class ExerciseTracker(private val context: Context) {
         // More detailed feedback
         return when {
             !rightJoint.isCorrect || !leftJoint.isCorrect -> {
-                "Asymmetry detected: Fix your form"
+                ""
             }
             !isGoodForm(landmarks, exerciseType) -> {
                 when (exerciseType) {
@@ -451,9 +542,19 @@ class ExerciseTracker(private val context: Context) {
         }
     }
 
+    // Update this method to provide spoken milestone feedback
+    fun provideRepMilestoneFeedback() {
+        // Provide milestone feedback for every 5 reps
+        if (repCount > 0 && repCount % 5 == 0) {
+            val milestoneMessage = "Great job! You've completed $repCount reps."
+            speakFeedback(milestoneMessage)
+        }
+    }
+
     // Clean up resources
     fun shutdown() {
         if (textToSpeech != null) {
+            clearTtsQueue()
             textToSpeech?.stop()
             textToSpeech?.shutdown()
             textToSpeech = null

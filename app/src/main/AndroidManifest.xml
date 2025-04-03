@@ -56,6 +56,9 @@
         <activity
             android:name=".ProgressDetailsActivity"
             android:exported="false" />
+        <activity
+            android:name=".UserRegistrationActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

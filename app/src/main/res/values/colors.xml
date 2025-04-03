@@ -23,6 +23,25 @@
     <color name="statuts_bar_colour">#DDFFFFFF</color>
     <color name="gray">#757575</color>
     <color name="green"> #90EE90</color>
+    <color name="primary">#304FFE</color>
+    <color name="primary_dark">#1A237E</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent">#536DFE</color>
+
+
+
+    <!-- BMI category colors -->
+    <color name="bmi_underweight">#3F51B5</color>
+    <color name="bmi_normal">#4CAF50</color>
+    <color name="bmi_overweight">#FF9800</color>
+    <color name="bmi_obese">#F44336</color>
+
+
+
+
+        <!-- App theme colors -->
+
+
 
 
 </resources>
