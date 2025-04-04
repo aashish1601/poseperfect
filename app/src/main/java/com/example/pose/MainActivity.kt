@@ -171,15 +171,24 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
             targetReps = overlayView.getTargetReps(),
             targetSets = overlayView.getTargetSets(),
             restTimeSeconds = overlayView.getRestTimeSeconds(),
-            weight = viewModel.currentWeight,  // Add this line to include weight
-            weightUnit = viewModel.weightUnit  // Add this line to include weight unit
+            weight = viewModel.currentWeight,
+            weightUnit = viewModel.weightUnit
         )
 
         // Save workout data
         workoutViewModel.insert(currentSession)
 
-        // Navigate back to ExerciseConfigActivity
-        val intent = Intent(this, ExerciseConfigActivity::class.java)
+        // Launch the recommendation activity instead of going directly back to ExerciseConfigActivity
+        val intent = Intent(this, WorkoutRecommendationActivity::class.java).apply {
+            putExtra("EXERCISE_TYPE", overlayView.getCurrentExerciseType())
+            putExtra("TOTAL_REPS", overlayView.getCurrentReps())
+            putExtra("TOTAL_SETS", overlayView.getCurrentSet())
+            putExtra("TARGET_REPS", overlayView.getTargetReps())
+            putExtra("TARGET_SETS", overlayView.getTargetSets())
+            putExtra("FORM_FEEDBACK", viewModel.exerciseTracker.formFeedback)
+            putExtra("WEIGHT", viewModel.currentWeight)
+            putExtra("WEIGHT_UNIT", viewModel.weightUnit)
+        }
         startActivity(intent)
         finish()
     }

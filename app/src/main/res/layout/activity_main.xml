@@ -58,22 +58,23 @@
             android:layout_above="@id/navigation" />
 
         <!-- DONE Button - Small, professional looking button above navigation on the right -->
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/doneButton"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:layout_above="@id/navigation"
             android:layout_alignParentEnd="true"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="573dp"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:text="DONE"
             android:textSize="12sp"
             android:textStyle="bold"
-            app:cornerRadius="4dp"
             app:backgroundTint="@color/design_default_color_primary"
-            style="@style/Widget.MaterialComponents.Button" />
+            app:cornerRadius="4dp" />
 
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/navigation"

@@ -59,6 +59,9 @@
         <activity
             android:name=".UserRegistrationActivity"
             android:exported="false" />
+        <activity
+            android:name=".WorkoutRecommendationActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
