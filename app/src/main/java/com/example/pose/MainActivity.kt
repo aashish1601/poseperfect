@@ -110,6 +110,8 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
             val targetReps = extras.getInt("TARGET_REPS", 0)
             val targetSets = extras.getInt("TARGET_SETS", 0)
             val restTime = extras.getInt("REST_TIME", 0)
+            val weight = extras.getFloat("WEIGHT", 0f)
+            val weightUnit = extras.getString("WEIGHT_UNIT", "kg")
 
             if (exerciseType == ExerciseType.NONE.name) {
                 Log.e("MainActivity", "Exercise type is NONE. Check ExerciseConfigActivity.")
@@ -117,6 +119,8 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
 
             binding.overlayView.post {
                 viewModel.exerciseTracker.setExerciseType(ExerciseType.valueOf(exerciseType))
+                viewModel.currentWeight = weight  // Set weight in ViewModel
+                viewModel.weightUnit = weightUnit
                 Log.d("MainActivity", "Exercise type set in OverlayView: $exerciseType")
                 when (RepMode.valueOf(repMode)) {
                     RepMode.TARGET -> {
@@ -140,10 +144,16 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
     }
 
     override fun onWorkoutCompleted(session: WorkoutSession) {
-        workoutViewModel.insert(session)
+        // Create a complete session with weight information
+        val completeSession = session.copy(
+            weight = viewModel.currentWeight,
+            weightUnit = viewModel.weightUnit
+        )
+
+        workoutViewModel.insert(completeSession)
         Toast.makeText(
             this,
-            "Saved ${session.totalSets} sets of ${session.exerciseType}",
+            "Saved ${completeSession.totalSets} sets of ${completeSession.exerciseType} with weight ${completeSession.weight} ${completeSession.weightUnit}",
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -160,7 +170,9 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
             totalSets = overlayView.getCurrentSet(),
             targetReps = overlayView.getTargetReps(),
             targetSets = overlayView.getTargetSets(),
-            restTimeSeconds = overlayView.getRestTimeSeconds()
+            restTimeSeconds = overlayView.getRestTimeSeconds(),
+            weight = viewModel.currentWeight,  // Add this line to include weight
+            weightUnit = viewModel.weightUnit  // Add this line to include weight unit
         )
 
         // Save workout data
@@ -171,6 +183,7 @@ class MainActivity : AppCompatActivity(), OverlayView.WorkoutCompletionListener 
         startActivity(intent)
         finish()
     }
+
     override fun onResume() {
         super.onResume()
         binding.overlayView.keepScreenOn = true // Prevent screen sleep

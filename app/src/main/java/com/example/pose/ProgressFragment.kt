@@ -36,6 +36,7 @@ class ProgressFragment : Fragment() {
         observeViewModel()
         setupSwipeRefresh()
     }
+
     private fun setupSwipeRefresh() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             viewModel.refreshSessions()
@@ -81,7 +82,6 @@ class ProgressFragment : Fragment() {
 }
 
 class WorkoutSessionAdapter : ListAdapter<WorkoutSession, WorkoutSessionAdapter.ViewHolder>(DIFF_CALLBACK) {
-
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy - HH:mm", Locale.getDefault())
 
     class ViewHolder(private val binding: ItemWorkoutSessionBinding) :

@@ -11,7 +11,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     val allSessions: LiveData<List<WorkoutSession>>
 
     init {
-        val workoutDao = WorkoutDatabase.getDatabase(application).workoutDao()
+        val workoutDao = AppDatabase.getDatabase(application).workoutDao()
         repository = WorkoutRepository(workoutDao)
         allSessions = repository.allSessions
     }
@@ -26,5 +26,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun getSessionsByExercise(exerciseType: String): LiveData<List<WorkoutSession>> {
         return repository.getSessionsByExercise(exerciseType)
+    }
+
+    fun getSessionsByExerciseChronological(exerciseType: String): LiveData<List<WorkoutSession>> {
+        return repository.getSessionsByExerciseChronological(exerciseType)
+    }
+
+    fun getMaxWeightForExercise(exerciseType: String): LiveData<Float> {
+        return repository.getMaxWeightForExercise(exerciseType)
     }
 }

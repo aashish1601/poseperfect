@@ -18,7 +18,9 @@ class ExerciseConfigActivity : AppCompatActivity() {
     private lateinit var binding: ActivityExerciseConfigBinding
     private var exerciseType: String = ""
     private var validTargetReps = false
+    private var validWeight = false
     private var selectedRepMode: MainActivity.RepMode = MainActivity.RepMode.NO_COUNTING
+    private var weightUnit: String = "kg" // Default unit
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +35,7 @@ class ExerciseConfigActivity : AppCompatActivity() {
         setupUI()
         setupListeners()
         setupTargetModeSwitch()
+        setupWeightInput()
     }
 
 
@@ -68,6 +71,58 @@ class ExerciseConfigActivity : AppCompatActivity() {
 
         // Set initial rest time text
         updateRestTimeText(60)
+
+        // Set default selected weight unit
+        binding.kgButton.isChecked = true
+    }
+
+    private fun setupWeightInput() {
+        // Set up weight input validation
+        binding.weightInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                validWeight = validateWeight(s?.toString())
+            }
+        })
+
+        // Set up weight unit toggle
+        binding.weightUnitToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                weightUnit = when (checkedId) {
+                    R.id.kgButton -> "kg"
+                    R.id.lbButton -> "lb"
+                    else -> "kg"
+                }
+                Log.d("ExerciseConfig", "Weight unit selected: $weightUnit")
+            }
+        }
+    }
+
+    private fun validateWeight(input: String?): Boolean {
+        return when {
+            input.isNullOrEmpty() -> {
+                binding.weightInputLayout.error = "Please enter weight"
+                false
+            }
+            input.toDoubleOrNull() == null -> {
+                binding.weightInputLayout.error = "Please enter a valid number"
+                false
+            }
+            input.toDouble() <= 0 -> {
+                binding.weightInputLayout.error = "Weight must be greater than 0"
+                false
+            }
+            input.toDouble() > 1000 -> {
+                binding.weightInputLayout.error = "Weight is too high"
+                false
+            }
+            else -> {
+                binding.weightInputLayout.error = null
+                true
+            }
+        }
     }
 
     private fun updateRestTimeText(seconds: Int) {
@@ -148,20 +203,37 @@ class ExerciseConfigActivity : AppCompatActivity() {
         })
 
         binding.startButton.setOnClickListener {
+            if (!validWeight) {
+                Toast.makeText(this, "Please enter a valid weight", Toast.LENGTH_SHORT).show()
+                binding.weightInput.requestFocus()
+                return@setOnClickListener
+            }
+
+            if (selectedRepMode == MainActivity.RepMode.TARGET && !validTargetReps) {
+                Toast.makeText(this, "Please enter valid target reps", Toast.LENGTH_SHORT).show()
+                binding.targetRepsInput.requestFocus()
+                return@setOnClickListener
+            }
+
             val intent = Intent(this, MainActivity::class.java).apply {
-                putExtra("EXERCISE_TYPE", exerciseType) // Ensure exerciseType is passed
+                putExtra("EXERCISE_TYPE", exerciseType)
                 putExtra("REP_MODE", selectedRepMode.name)
                 putExtra("TARGET_REPS", binding.targetRepsInput.text.toString().toIntOrNull() ?: 0)
                 putExtra("TARGET_SETS", binding.setsNumberPicker.value)
                 putExtra("REST_TIME", binding.restTimeSlider.value.toInt())
+                val weightValue = binding.weightInput.text.toString().toFloatOrNull() ?: 0f
+                putExtra("WEIGHT", weightValue)
+                putExtra("WEIGHT_UNIT", weightUnit)
+
+                Log.d("ExerciseConfig", "Sending weight: $weightValue $weightUnit")
             }
             startActivity(intent)
         }
+
         binding.showprogressbutton.setOnClickListener {
             val intent = Intent(this, ProgressSelectionActivity::class.java)
             startActivity(intent)
         }
-
     }
 
     private fun setupTargetModeSwitch() {
@@ -195,80 +267,5 @@ class ExerciseConfigActivity : AppCompatActivity() {
                 true
             }
         }
-    }
-
-    private fun startExercise() {
-        val targetSets = binding.setsNumberPicker.value
-        val restTime = binding.restTimeSlider.value.toInt()
-
-        when (selectedRepMode) {
-            MainActivity.RepMode.TARGET -> {
-                val targetReps = binding.targetRepsInput.text.toString().toIntOrNull() ?: 0
-
-                if (targetReps < 1 || targetSets < 1) {
-                    Toast.makeText(this, "Enter valid rep/set counts", Toast.LENGTH_SHORT).show()
-                    return
-                }
-
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra("EXERCISE_TYPE", exerciseType)
-                    putExtra("REP_MODE", MainActivity.RepMode.TARGET.name)
-                    putExtra("TARGET_REPS", targetReps)
-                    putExtra("TARGET_SETS", targetSets)
-                    putExtra("REST_TIME", restTime)
-                    startActivity(this)
-                }
-                finish()
-            }
-
-            MainActivity.RepMode.NO_COUNTING -> {
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra("EXERCISE_TYPE", exerciseType)
-                    putExtra("REP_MODE", MainActivity.RepMode.NO_COUNTING.name)
-                    putExtra("TARGET_SETS", targetSets)
-                    putExtra("REST_TIME", restTime)
-                    startActivity(this)
-                }
-                finish()
-            }
-
-            MainActivity.RepMode.COUNT_UP -> {
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra("EXERCISE_TYPE", exerciseType)
-                    putExtra("REP_MODE", MainActivity.RepMode.COUNT_UP.name)
-                    putExtra("TARGET_SETS", targetSets)
-                    putExtra("REST_TIME", restTime)
-                    startActivity(this)
-                }
-                finish()
-            }
-
-            MainActivity.RepMode.INFINITE -> {
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra("EXERCISE_TYPE", exerciseType)
-                    putExtra("REP_MODE", MainActivity.RepMode.INFINITE.name)
-                    startActivity(this)
-                }
-                finish()
-            }
-        }
-    }
-
-    // Renamed to avoid confusion with the new startExercise function
-    private fun startExerciseWithParams(
-        repMode: MainActivity.RepMode,
-        targetSets: Int = 0,
-        targetReps: Int = 0,
-        restTime: Int = 0
-    ) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            putExtra("EXERCISE_TYPE", exerciseType)
-            putExtra("REP_MODE", repMode.name) // Pass enum name directly
-            putExtra("TARGET_SETS", targetSets)
-            putExtra("TARGET_REPS", targetReps)
-            putExtra("REST_TIME", restTime)
-        }
-        startActivity(intent)
-        finish()
     }
 }

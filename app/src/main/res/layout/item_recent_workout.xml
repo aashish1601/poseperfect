@@ -10,16 +10,31 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="February 25, 2025"
+        android:text="Date"
         android:textColor="@color/black"
         android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/workout_reps"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="24 reps"
-        android:textColor="@color/black"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/workout_reps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 reps"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/workout_weight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No weight"
+            android:textColor="@color/gray"
+            android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>

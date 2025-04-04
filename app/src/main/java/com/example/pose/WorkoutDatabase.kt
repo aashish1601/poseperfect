@@ -5,7 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import android.content.Context
 
-@Database(entities = [WorkoutSession::class], version = 1, exportSchema = false)
+@Database(entities = [WorkoutSession::class], version = 2, exportSchema = false)
 abstract class WorkoutDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutSessionDao
 

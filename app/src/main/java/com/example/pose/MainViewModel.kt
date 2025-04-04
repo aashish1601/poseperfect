@@ -24,6 +24,8 @@ class MainViewModel(private val appContext: Context) : ViewModel() {
     var targetSets = 0
     var currentSet = 1
     var restTimeSeconds = 0
+    var currentWeight: Float = 0f
+    var weightUnit: String = "kg"
     var currentReps: Int
         get() = exerciseTracker.getRepCount()
         set(value) {
