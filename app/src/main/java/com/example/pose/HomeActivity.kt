@@ -27,7 +27,7 @@ class HomeActivity : AppCompatActivity() {
 
         // Modified Start button click listener to go to ExerciseSelectionActivity
         binding.startButton.setOnClickListener {
-            val intent = Intent(this, ExerciseSelectionActivity::class.java)
+            val intent = Intent(this, UserRegistrationActivity::class.java)
             startActivity(intent)
         }
 

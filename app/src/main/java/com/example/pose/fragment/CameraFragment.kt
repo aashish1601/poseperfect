@@ -135,6 +135,10 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             setUpCamera()
         }
 
+        // Initialize bottom sheet with initial default values
+        initBottomSheetControlsWithDefaults()
+
+        // Initialize the PoseLandmarkerHelper in the background
         backgroundExecutor.execute {
             poseLandmarkerHelper = PoseLandmarkerHelper(
                 context = requireContext(),
@@ -145,14 +149,17 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 currentDelegate = viewModel.currentDelegate,
                 poseLandmarkerHelperListener = this
             )
-        }
 
-        initBottomSheetControls()
+            // Now that poseLandmarkerHelper is initialized, setup the interactive controls
+            activity?.runOnUiThread {
+                setupBottomSheetInteractiveControls()
+            }
+        }
     }
 
-    private fun initBottomSheetControls() {
-        // init bottom sheet settings
-
+    // Initialize the bottom sheet with default values, but without interactive listeners
+    private fun initBottomSheetControlsWithDefaults() {
+        // init bottom sheet settings with default values from viewModel
         fragmentCameraBinding.bottomSheetLayout.detectionThresholdValue.text =
             String.format(
                 Locale.US, "%.2f", viewModel.currentMinPoseDetectionConfidence
@@ -166,9 +173,20 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 Locale.US, "%.2f", viewModel.currentMinPosePresenceConfidence
             )
 
+        // Set spinner selections based on viewModel values, but without listeners
+        fragmentCameraBinding.bottomSheetLayout.spinnerDelegate.setSelection(
+            viewModel.currentDelegate, false
+        )
+        fragmentCameraBinding.bottomSheetLayout.spinnerModel.setSelection(
+            viewModel.currentModel, false
+        )
+    }
+
+    // Setup interactive controls after poseLandmarkerHelper has been initialized
+    private fun setupBottomSheetInteractiveControls() {
         // When clicked, lower pose detection score threshold floor
         fragmentCameraBinding.bottomSheetLayout.detectionThresholdMinus.setOnClickListener {
-            if (poseLandmarkerHelper.minPoseDetectionConfidence >= 0.2) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPoseDetectionConfidence >= 0.2) {
                 poseLandmarkerHelper.minPoseDetectionConfidence -= 0.1f
                 updateControlsUi()
             }
@@ -176,7 +194,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, raise pose detection score threshold floor
         fragmentCameraBinding.bottomSheetLayout.detectionThresholdPlus.setOnClickListener {
-            if (poseLandmarkerHelper.minPoseDetectionConfidence <= 0.8) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPoseDetectionConfidence <= 0.8) {
                 poseLandmarkerHelper.minPoseDetectionConfidence += 0.1f
                 updateControlsUi()
             }
@@ -184,7 +202,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, lower pose tracking score threshold floor
         fragmentCameraBinding.bottomSheetLayout.trackingThresholdMinus.setOnClickListener {
-            if (poseLandmarkerHelper.minPoseTrackingConfidence >= 0.2) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPoseTrackingConfidence >= 0.2) {
                 poseLandmarkerHelper.minPoseTrackingConfidence -= 0.1f
                 updateControlsUi()
             }
@@ -192,7 +210,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, raise pose tracking score threshold floor
         fragmentCameraBinding.bottomSheetLayout.trackingThresholdPlus.setOnClickListener {
-            if (poseLandmarkerHelper.minPoseTrackingConfidence <= 0.8) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPoseTrackingConfidence <= 0.8) {
                 poseLandmarkerHelper.minPoseTrackingConfidence += 0.1f
                 updateControlsUi()
             }
@@ -200,7 +218,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, lower pose presence score threshold floor
         fragmentCameraBinding.bottomSheetLayout.presenceThresholdMinus.setOnClickListener {
-            if (poseLandmarkerHelper.minPosePresenceConfidence >= 0.2) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPosePresenceConfidence >= 0.2) {
                 poseLandmarkerHelper.minPosePresenceConfidence -= 0.1f
                 updateControlsUi()
             }
@@ -208,7 +226,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, raise pose presence score threshold floor
         fragmentCameraBinding.bottomSheetLayout.presenceThresholdPlus.setOnClickListener {
-            if (poseLandmarkerHelper.minPosePresenceConfidence <= 0.8) {
+            if (::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.minPosePresenceConfidence <= 0.8) {
                 poseLandmarkerHelper.minPosePresenceConfidence += 0.1f
                 updateControlsUi()
             }
@@ -216,18 +234,15 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
         // When clicked, change the underlying hardware used for inference.
         // Current options are CPU and GPU
-        fragmentCameraBinding.bottomSheetLayout.spinnerDelegate.setSelection(
-            viewModel.currentDelegate, false
-        )
         fragmentCameraBinding.bottomSheetLayout.spinnerDelegate.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
                     p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long
                 ) {
-                    try {
+                    if (::poseLandmarkerHelper.isInitialized) {
                         poseLandmarkerHelper.currentDelegate = p2
                         updateControlsUi()
-                    } catch(e: UninitializedPropertyAccessException) {
+                    } else {
                         Log.e(TAG, "PoseLandmarkerHelper has not been initialized yet.")
                     }
                 }
@@ -238,10 +253,6 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             }
 
         // When clicked, change the underlying model used for object detection
-        fragmentCameraBinding.bottomSheetLayout.spinnerModel.setSelection(
-            viewModel.currentModel,
-            false
-        )
         fragmentCameraBinding.bottomSheetLayout.spinnerModel.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
@@ -250,8 +261,12 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     p2: Int,
                     p3: Long
                 ) {
-                    poseLandmarkerHelper.currentModel = p2
-                    updateControlsUi()
+                    if (::poseLandmarkerHelper.isInitialized) {
+                        poseLandmarkerHelper.currentModel = p2
+                        updateControlsUi()
+                    } else {
+                        Log.e(TAG, "PoseLandmarkerHelper has not been initialized yet.")
+                    }
                 }
 
                 override fun onNothingSelected(p0: AdapterView<*>?) {
